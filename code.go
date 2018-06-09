@@ -2,6 +2,7 @@ package code
 
 import (
 	"github.com/dave/jennifer/jen"
+	"strings"
 )
 
 // Code is the interface that all code nodes need to implement
@@ -375,7 +376,13 @@ func (f *FieldTags) Set(key, value string) {
 	(*f)[key] = value
 }
 func codeString(c Code) string {
-	return c.Code().GoString()
+	lines := strings.Split(c.Code().GoString(), "\n")
+	var results []string
+	// fixes the unnecessary tab in the beginning
+	for _, l := range lines {
+		results = append(results, strings.TrimPrefix(l, "\t"))
+	}
+	return string(strings.Join(results, "\n"))
 }
 
 func addDocsCode(c *jen.Statement, docs []Comment) {
