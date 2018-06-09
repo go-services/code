@@ -21,11 +21,15 @@ type Comment string
 
 type TypeOptions func(t *Type)
 
+type MethodType struct {
+	Method
+}
+
 type Type struct {
 	Import *Import
 
 	// this is for method type types. e.x  func(string) string
-	Method    *Method
+	Method    *MethodType
 	Pointer   bool
 	Qualifier string
 }
@@ -107,7 +111,7 @@ func ImportTypeOption(i *Import) TypeOptions {
 	}
 }
 
-func MethodTypeOption(m *Method) TypeOptions {
+func MethodTypeOption(m *MethodType) TypeOptions {
 	return func(t *Type) {
 		t.Method = m
 	}
@@ -221,6 +225,14 @@ func NewMethod(name string, options ...MethodOptions) *Method {
 	}
 	return m
 }
+
+func NewMethodType(options ...MethodOptions) *MethodType {
+	m := &MethodType{}
+	for _, o := range options {
+		o(&m.Method)
+	}
+	return m
+}
 func NewInterfaceMethod(name string, options ...MethodOptions) InterfaceMethod {
 	m := NewMethod(name, options...)
 	return InterfaceMethod(*m)
@@ -233,20 +245,24 @@ func NewInterface(name string, methods []InterfaceMethod, docs ...Comment) *Inte
 		docs:    docs,
 	}
 }
-func (c *Comment) Code() *jen.Statement {
-	return jen.Comment(string(*c))
+func (c Comment) Code() *jen.Statement {
+	return jen.Comment(string(c))
 }
-func (c *Comment) String() string {
-	return codeString(c)
+func (c Comment) String() string {
+	return codeString(&c)
 }
-func (c *Comment) AddDocs(docs ...Comment) {
+func (c Comment) AddDocs(docs ...Comment) {
 	return
 }
 
 func (t *Type) Code() *jen.Statement {
-	code := jen.Empty()
+	code := &jen.Statement{}
 	if t.Pointer {
 		code.Id("*")
+	}
+	if t.Method != nil {
+		code.Add(t.Method.Code())
+		return code
 	}
 	if t.Import != nil {
 		code.Qual(t.Import.Path, t.Qualifier)
@@ -303,6 +319,14 @@ func (p *Parameter) AddDocs(docs ...Comment) {
 	if docs != nil {
 		p.docs = append(p.docs, docs...)
 	}
+}
+
+func (m *MethodType) Code() *jen.Statement {
+	code := &jen.Statement{}
+	code.Func()
+	code.Params(paramsList(m.Params)...)
+	code.Params(paramsList(m.Results)...)
+	return code
 }
 
 func (m *Method) Code() *jen.Statement {
