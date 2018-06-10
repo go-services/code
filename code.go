@@ -42,7 +42,6 @@ type Var struct {
 type Const Var
 
 type Parameter struct {
-	docs []Comment
 	Name string
 	Type Type
 }
@@ -50,6 +49,7 @@ type Parameter struct {
 type FieldTags map[string]string
 
 type StructField struct {
+	docs []Comment
 	Parameter
 	Tags FieldTags
 }
@@ -150,11 +150,10 @@ func NewConst(name string, tp Type, value interface{}, docs ...Comment) *Const {
 	return &c
 }
 
-func NewParameter(name string, tp Type, docs ...Comment) *Parameter {
+func NewParameter(name string, tp Type) *Parameter {
 	return &Parameter{
 		Name: name,
 		Type: tp,
-		docs: docs,
 	}
 }
 func NewFieldTags(key, value string) FieldTags {
@@ -164,9 +163,9 @@ func NewStructField(name string, tp Type, docs ...Comment) StructField {
 	pr := &Parameter{
 		Name: name,
 		Type: tp,
-		docs: docs,
 	}
 	return StructField{
+		docs:      docs,
 		Parameter: *pr,
 	}
 }
@@ -253,7 +252,7 @@ func (c Comment) AddDocs(docs ...Comment) {
 	return
 }
 
-func (t *Type) Code() *jen.Statement {
+func (t Type) Code() *jen.Statement {
 	code := &jen.Statement{}
 	if t.Pointer {
 		code.Id("*")
@@ -268,21 +267,17 @@ func (t *Type) Code() *jen.Statement {
 	}
 	return code.Id(t.Qualifier)
 }
-func (t *Type) String() string {
+func (t Type) String() string {
 	if t.Method != nil {
-		code := t.Code()
-		// Hack to get the reader to not throw errors in function types
-		fakeStruct := jen.Type().Id("_").Struct(jen.Id("_").Add(code))
-		s := fakeStruct.GoString()
-		s = prepareLines(s)
-		s = strings.TrimPrefix(s, "type _ struct {\n_ ")
-		s = strings.TrimSuffix(s, "\n}")
-		// -----
+		s := t.Method.String()
+		if t.Pointer {
+			s = "*" + s
+		}
 		return s
 	}
 	return codeString(t)
 }
-func (t *Type) AddDocs(docs ...Comment) {
+func (t Type) AddDocs(docs ...Comment) {
 	return
 }
 
@@ -333,11 +328,17 @@ func (p *Parameter) Code() *jen.Statement {
 }
 
 func (p *Parameter) String() string {
-	return codeString(p)
+	// Hack to get the reader to not throw errors in creating string representative of parameters
+	code := jen.Func().Id("_").Params(p.Code()).Block()
+	s := code.GoString()
+	s = strings.TrimPrefix(s, "func _(")
+	s = strings.TrimSuffix(s, ") {}")
+	// -----
+	return s
 }
 
 func (p *Parameter) AddDocs(docs ...Comment) {
-	p.docs = append(p.docs, docs...)
+	return
 }
 
 func (m *MethodType) Code() *jen.Statement {
@@ -348,7 +349,14 @@ func (m *MethodType) Code() *jen.Statement {
 	return code
 }
 func (m *MethodType) String() string {
-	return codeString(m)
+	code := m.Code()
+	// Hack to get the reader to not throw errors in function types
+	fakeStruct := jen.Type().Id("_").Struct(jen.Id("_").Add(code))
+	s := fakeStruct.GoString()
+	s = strings.TrimPrefix(s, "type _ struct {\n\t_ ")
+	s = strings.TrimSuffix(s, "\n}")
+	// -----
+	return s
 }
 func (m *MethodType) AddDocs(docs ...Comment) {
 	return
@@ -388,10 +396,10 @@ func (s *StructField) Code() *jen.Statement {
 
 func (s *Struct) Code() *jen.Statement {
 	code := &jen.Statement{}
-	addDocsCode(code, s.docs)
-	code.Type().Id(s.Name)
-	code.Struct(fieldList(s.Fields)...)
-	return code
+	if s.docs != nil {
+		addDocsCode(code, s.docs)
+	}
+	return code.Type().Id(s.Name).Struct(fieldList(s.Fields)...)
 }
 func fieldList(fields []StructField) (f []jen.Code) {
 	for _, p := range fields {
@@ -425,7 +433,7 @@ func (f *FieldTags) Set(key, value string) {
 	(*f)[key] = value
 }
 func codeString(c Code) string {
-	return prepareLines(c.Code().GoString())
+	return c.Code().GoString()
 }
 
 func prepareLines(s string) string {

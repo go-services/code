@@ -435,26 +435,16 @@ func TestNewParameter(t *testing.T) {
 			args: args{
 				name: "test",
 				tp:   NewType("qual"),
-				docs: []Comment{
-					"Some",
-					"Comments",
-					"Go Here",
-				},
 			},
 			want: &Parameter{
 				Name: "test",
 				Type: NewType("qual"),
-				docs: []Comment{
-					"Some",
-					"Comments",
-					"Go Here",
-				},
 			},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := NewParameter(tt.args.name, tt.args.tp, tt.args.docs...); !reflect.DeepEqual(got, tt.want) {
+			if got := NewParameter(tt.args.name, tt.args.tp); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("NewParameter() = %v, want %v", got, tt.want)
 			}
 		})
@@ -530,11 +520,11 @@ func TestNewStructField(t *testing.T) {
 				Parameter: Parameter{
 					Name: "Test",
 					Type: NewType("string"),
-					docs: []Comment{
-						"Some",
-						"Comments",
-						"Go Here",
-					},
+				},
+				docs: []Comment{
+					"Some",
+					"Comments",
+					"Go Here",
 				},
 			},
 		},
@@ -591,13 +581,13 @@ func TestNewStructFieldWithTag(t *testing.T) {
 				Parameter: Parameter{
 					Name: "Test",
 					Type: NewType("string"),
-					docs: []Comment{
-						"Some",
-						"Comments",
-						"Go Here",
-					},
 				},
 				Tags: NewFieldTags("json", "test"),
+				docs: []Comment{
+					"Some",
+					"Comments",
+					"Go Here",
+				},
 			},
 		},
 	}
@@ -1567,6 +1557,7 @@ func TestConst_Code(t *testing.T) {
 		})
 	}
 }
+
 func TestConst_String(t *testing.T) {
 	type fields struct {
 		docs  []Comment
@@ -1614,6 +1605,63 @@ func TestConst_String(t *testing.T) {
 	}
 }
 
+func TestConst_AddDocs(t *testing.T) {
+	type fields struct {
+		docs  []Comment
+		Name  string
+		Type  Type
+		Value interface{}
+	}
+	type args struct {
+		docs []Comment
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		args   args
+		want   []Comment
+	}{
+
+		{
+			name: "Should add the docs to the variable",
+			fields: fields{
+				Name: "Test",
+				Type: NewType("string"),
+			},
+			args: args{
+				docs: []Comment{"This is some docs", "This is some more docs"},
+			},
+			want: []Comment{"This is some docs", "This is some more docs"},
+		}, {
+			name: "Should add the docs to the variable with existing docs",
+			fields: fields{
+				Name: "Test",
+				Type: NewType("string"),
+				docs: []Comment{"Some initial docs"},
+			},
+			args: args{
+				docs: []Comment{"This is some docs", "This is some more docs"},
+			},
+			want: []Comment{"Some initial docs", "This is some docs", "This is some more docs"},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := &Const{
+				docs:  tt.fields.docs,
+				Name:  tt.fields.Name,
+				Type:  tt.fields.Type,
+				Value: tt.fields.Value,
+			}
+			c.AddDocs(tt.args.docs...)
+
+			if !reflect.DeepEqual(c.docs, tt.want) {
+				t.Errorf("Const.docs = %v, want %v", c.docs, tt.want)
+			}
+		})
+	}
+}
+
 func TestParameter_Code(t *testing.T) {
 	type fields struct {
 		docs []Comment
@@ -1625,12 +1673,18 @@ func TestParameter_Code(t *testing.T) {
 		fields fields
 		want   *jen.Statement
 	}{
-		// TODO: Add test cases.
+		{
+			name: "Should return the jen representation of the parameter",
+			fields: fields{
+				Name: "Test",
+				Type: NewType("string"),
+			},
+			want: jen.Id("Test").Add(NewType("string").Code()),
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			p := &Parameter{
-				docs: tt.fields.docs,
 				Name: tt.fields.Name,
 				Type: tt.fields.Type,
 			}
@@ -1643,7 +1697,6 @@ func TestParameter_Code(t *testing.T) {
 
 func TestParameter_String(t *testing.T) {
 	type fields struct {
-		docs []Comment
 		Name string
 		Type Type
 	}
@@ -1652,12 +1705,48 @@ func TestParameter_String(t *testing.T) {
 		fields fields
 		want   string
 	}{
-		// TODO: Add test cases.
+		{
+			name: "Should return the jen representation of the parameter",
+			fields: fields{
+				Name: "Test",
+				Type: NewType("string"),
+			},
+			want: "Test string",
+		},
+		{
+			name: "Should return the jen representation of the parameter with a function type",
+			fields: fields{
+				Name: "Test",
+				// some crazy type...
+				Type: NewType(
+					"",
+					PointerTypeOption(),
+					MethodTypeOption(
+						NewMethodType(
+							ParamsMethodOption(
+								*NewParameter("abc", NewType("int", PointerTypeOption())),
+								*NewParameter("d", NewType("string")),
+							),
+							ResultsMethodOption(
+								*NewParameter(
+									"r",
+									NewType(
+										"Test",
+										PointerTypeOption(),
+										ImportTypeOption(NewImport("abc", "test/abc")),
+									),
+								),
+							),
+						),
+					),
+				),
+			},
+			want: "Test *func(abc *int, d string) (r *abc.Test)",
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			p := &Parameter{
-				docs: tt.fields.docs,
 				Name: tt.fields.Name,
 				Type: tt.fields.Type,
 			}
@@ -1670,7 +1759,6 @@ func TestParameter_String(t *testing.T) {
 
 func TestParameter_AddDocs(t *testing.T) {
 	type fields struct {
-		docs []Comment
 		Name string
 		Type Type
 	}
@@ -1682,12 +1770,13 @@ func TestParameter_AddDocs(t *testing.T) {
 		fields fields
 		args   args
 	}{
-		// TODO: Add test cases.
+		{
+			name: "Should do nothing",
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			p := &Parameter{
-				docs: tt.fields.docs,
 				Name: tt.fields.Name,
 				Type: tt.fields.Type,
 			}
@@ -1710,7 +1799,7 @@ func TestMethod_Code(t *testing.T) {
 		fields fields
 		want   *jen.Statement
 	}{
-		// TODO: Add test cases.
+		{},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -2018,7 +2107,13 @@ func Test_codeString(t *testing.T) {
 		args args
 		want string
 	}{
-		// TODO: Add test cases.
+		{
+			name: "Should remove unnecessary tabs",
+			args: args{
+				c: NewStructWithFields("Hello", []StructField{NewStructField("s", NewType("string"))}),
+			},
+			want: "type Hello struct {\n\ts string\n}",
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -2111,6 +2206,152 @@ func TestTypeMethod_Code(t *testing.T) {
 			}
 			if got := m.Code(); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("MethodType.Code() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestNewMethodType(t *testing.T) {
+	type args struct {
+		options []MethodOptions
+	}
+	tests := []struct {
+		name string
+		args args
+		want *MethodType
+	}{
+		// TODO: Add test cases.
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := NewMethodType(tt.args.options...); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("NewMethodType() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestMethodType_Code(t *testing.T) {
+	type fields struct {
+		Name    string
+		docs    []Comment
+		Recv    *Parameter
+		Params  []Parameter
+		Results []Parameter
+		Body    []jen.Code
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		want   *jen.Statement
+	}{
+		// TODO: Add test cases.
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			m := &MethodType{
+				Name:    tt.fields.Name,
+				docs:    tt.fields.docs,
+				Recv:    tt.fields.Recv,
+				Params:  tt.fields.Params,
+				Results: tt.fields.Results,
+				Body:    tt.fields.Body,
+			}
+			if got := m.Code(); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("MethodType.Code() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestMethodType_String(t *testing.T) {
+	type fields struct {
+		Name    string
+		docs    []Comment
+		Recv    *Parameter
+		Params  []Parameter
+		Results []Parameter
+		Body    []jen.Code
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		want   string
+	}{
+		// TODO: Add test cases.
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			m := &MethodType{
+				Name:    tt.fields.Name,
+				docs:    tt.fields.docs,
+				Recv:    tt.fields.Recv,
+				Params:  tt.fields.Params,
+				Results: tt.fields.Results,
+				Body:    tt.fields.Body,
+			}
+			if got := m.String(); got != tt.want {
+				t.Errorf("MethodType.String() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestMethodType_AddDocs(t *testing.T) {
+	type fields struct {
+		Name    string
+		docs    []Comment
+		Recv    *Parameter
+		Params  []Parameter
+		Results []Parameter
+		Body    []jen.Code
+	}
+	type args struct {
+		docs []Comment
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		args   args
+	}{
+		// TODO: Add test cases.
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			m := &MethodType{
+				Name:    tt.fields.Name,
+				docs:    tt.fields.docs,
+				Recv:    tt.fields.Recv,
+				Params:  tt.fields.Params,
+				Results: tt.fields.Results,
+				Body:    tt.fields.Body,
+			}
+			m.AddDocs(tt.args.docs...)
+		})
+	}
+}
+
+func Test_prepareLines(t *testing.T) {
+	type args struct {
+		s string
+	}
+	tests := []struct {
+		name string
+		args args
+		want string
+	}{
+		{
+			name: "Should remove unnecessary tabs",
+			args: args{
+				s: "\ttype Hello struct {\n\t\ts string\n}",
+			},
+			want: "type Hello struct {\n\ts string\n}",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := prepareLines(tt.args.s); got != tt.want {
+				t.Errorf("prepareLines() = %v, want %v", got, tt.want)
 			}
 		})
 	}
