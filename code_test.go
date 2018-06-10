@@ -2220,9 +2220,7 @@ func TestStruct_Code(t *testing.T) {
 		name   string
 		fields fields
 		want   *jen.Statement
-	}{
-		{},
-	}
+	}{}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			s := &Struct{
