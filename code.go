@@ -21,9 +21,7 @@ type Comment string
 
 type TypeOptions func(t *Type)
 
-type MethodType struct {
-	Method
-}
+type MethodType Method
 
 type Type struct {
 	Import *Import
@@ -41,9 +39,7 @@ type Var struct {
 	Value interface{}
 }
 
-type Const struct {
-	Var
-}
+type Const Var
 
 type Parameter struct {
 	docs []Comment
@@ -150,7 +146,8 @@ func NewVarWithValue(name string, tp Type, value interface{}, docs ...Comment) *
 func NewConst(name string, tp Type, value interface{}, docs ...Comment) *Const {
 	v := NewVar(name, tp, docs...)
 	v.Value = value
-	return &Const{Var: *v}
+	c := Const(*v)
+	return &c
 }
 
 func NewParameter(name string, tp Type, docs ...Comment) *Parameter {
@@ -191,12 +188,12 @@ func NewStructWithFields(name string, fields []StructField, docs ...Comment) *St
 	st.Fields = fields
 	return st
 }
-func ParamsMethodOption(params []Parameter) MethodOptions {
+func ParamsMethodOption(params ...Parameter) MethodOptions {
 	return func(m *Method) {
 		m.Params = params
 	}
 }
-func ResultsMethodOption(results []Parameter) MethodOptions {
+func ResultsMethodOption(results ...Parameter) MethodOptions {
 	return func(m *Method) {
 		m.Results = results
 	}
@@ -227,11 +224,12 @@ func NewMethod(name string, options ...MethodOptions) *Method {
 }
 
 func NewMethodType(options ...MethodOptions) *MethodType {
-	m := &MethodType{}
+	m := &Method{}
 	for _, o := range options {
-		o(&m.Method)
+		o(m)
 	}
-	return m
+	mt := MethodType(*m)
+	return &mt
 }
 func NewInterfaceMethod(name string, options ...MethodOptions) InterfaceMethod {
 	m := NewMethod(name, options...)
@@ -271,6 +269,17 @@ func (t *Type) Code() *jen.Statement {
 	return code.Id(t.Qualifier)
 }
 func (t *Type) String() string {
+	if t.Method != nil {
+		code := t.Code()
+		// Hack to get the reader to not throw errors in function types
+		fakeStruct := jen.Type().Id("_").Struct(jen.Id("_").Add(code))
+		s := fakeStruct.GoString()
+		s = prepareLines(s)
+		s = strings.TrimPrefix(s, "type _ struct {\n_ ")
+		s = strings.TrimSuffix(s, "\n}")
+		// -----
+		return s
+	}
 	return codeString(t)
 }
 func (t *Type) AddDocs(docs ...Comment) {
@@ -278,9 +287,12 @@ func (t *Type) AddDocs(docs ...Comment) {
 }
 
 func (v *Var) Code() *jen.Statement {
-	code := jen.Empty()
-	addDocsCode(code, v.docs)
-	code.Line().Var().Id(v.Name).Add(v.Type.Code())
+	code := &jen.Statement{}
+	if v.docs != nil {
+		addDocsCode(code, v.docs)
+		code.Line()
+	}
+	code.Var().Id(v.Name).Add(v.Type.Code())
 	if v.Value != nil {
 		code.Op("=").Lit(v.Value)
 	}
@@ -298,13 +310,22 @@ func (v *Var) AddDocs(docs ...Comment) {
 }
 
 func (c *Const) Code() *jen.Statement {
-	code := jen.Empty()
-	addDocsCode(code, c.docs)
-	code.Line().Const().Id(c.Name).Add(c.Type.Code())
+	code := &jen.Statement{}
+	if c.docs != nil {
+		addDocsCode(code, c.docs)
+		code.Line()
+	}
+	code.Const().Id(c.Name).Add(c.Type.Code())
 	if c.Value != nil {
 		code.Op("=").Lit(c.Value)
 	}
 	return code
+}
+func (c *Const) String() string {
+	return codeString(c)
+}
+func (c *Const) AddDocs(docs ...Comment) {
+	c.docs = append(c.docs, docs...)
 }
 
 func (p *Parameter) Code() *jen.Statement {
@@ -316,9 +337,7 @@ func (p *Parameter) String() string {
 }
 
 func (p *Parameter) AddDocs(docs ...Comment) {
-	if docs != nil {
-		p.docs = append(p.docs, docs...)
-	}
+	p.docs = append(p.docs, docs...)
 }
 
 func (m *MethodType) Code() *jen.Statement {
@@ -328,9 +347,15 @@ func (m *MethodType) Code() *jen.Statement {
 	code.Params(paramsList(m.Results)...)
 	return code
 }
+func (m *MethodType) String() string {
+	return codeString(m)
+}
+func (m *MethodType) AddDocs(docs ...Comment) {
+	return
+}
 
 func (m *Method) Code() *jen.Statement {
-	code := jen.Empty()
+	code := &jen.Statement{}
 	addDocsCode(code, m.docs)
 	code.Func()
 	if m.Recv != nil {
@@ -356,13 +381,13 @@ func (m *Method) AddStringBody(s string) {
 }
 
 func (s *StructField) Code() *jen.Statement {
-	code := jen.Empty()
+	code := &jen.Statement{}
 	addDocsCode(code, s.docs)
 	return code.Id(s.Name).Add(s.Type.Code()).Tag(s.Tags)
 }
 
 func (s *Struct) Code() *jen.Statement {
-	code := jen.Empty()
+	code := &jen.Statement{}
 	addDocsCode(code, s.docs)
 	code.Type().Id(s.Name)
 	code.Struct(fieldList(s.Fields)...)
@@ -384,7 +409,7 @@ func (s *Struct) AddDocs(docs ...Comment) {
 }
 
 func (m *InterfaceMethod) Code() *jen.Statement {
-	code := jen.Empty()
+	code := &jen.Statement{}
 	addDocsCode(code, m.docs)
 	code.Id(m.Name)
 	code.Params(paramsList(m.Params)...)
@@ -400,7 +425,11 @@ func (f *FieldTags) Set(key, value string) {
 	(*f)[key] = value
 }
 func codeString(c Code) string {
-	lines := strings.Split(c.Code().GoString(), "\n")
+	return prepareLines(c.Code().GoString())
+}
+
+func prepareLines(s string) string {
+	lines := strings.Split(s, "\n")
 	var results []string
 	// fixes the unnecessary tab in the beginning
 	for _, l := range lines {
@@ -408,7 +437,6 @@ func codeString(c Code) string {
 	}
 	return string(strings.Join(results, "\n"))
 }
-
 func addDocsCode(c *jen.Statement, docs []Comment) {
 	for _, d := range docs {
 		c.Add(d.Code())

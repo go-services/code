@@ -370,11 +370,9 @@ func TestNewConst(t *testing.T) {
 				value: 2,
 			},
 			want: &Const{
-				Var{
-					Name:  "test",
-					Type:  NewType("Qual"),
-					Value: 2,
-				},
+				Name:  "test",
+				Type:  NewType("Qual"),
+				Value: 2,
 			},
 		},
 		{
@@ -390,15 +388,13 @@ func TestNewConst(t *testing.T) {
 				},
 			},
 			want: &Const{
-				Var{
-					Name:  "test",
-					Type:  NewType("Qual"),
-					Value: 2,
-					docs: []Comment{
-						"Some",
-						"Comments",
-						"Go Here",
-					},
+				Name:  "test",
+				Type:  NewType("Qual"),
+				Value: 2,
+				docs: []Comment{
+					"Some",
+					"Comments",
+					"Go Here",
 				},
 			},
 		},
@@ -749,7 +745,7 @@ func TestParamsMethodOption(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := ParamsMethodOption(tt.args.params)
+			got := ParamsMethodOption(tt.args.params...)
 			got(tt.args.mth)
 			if !reflect.DeepEqual(tt.args.mth, tt.want) {
 				t.Errorf("Method = %v, want %v", tt.args.mth, tt.want)
@@ -786,7 +782,7 @@ func TestResultsMethodOption(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := ResultsMethodOption(tt.args.results)
+			got := ResultsMethodOption(tt.args.results...)
 			got(tt.args.mth)
 			if !reflect.DeepEqual(tt.args.mth, tt.want) {
 				t.Errorf("Method = %v, want %v", tt.args.mth, tt.want)
@@ -1208,7 +1204,87 @@ func TestType_String(t *testing.T) {
 		fields fields
 		want   string
 	}{
-		// TODO: Add test cases.
+		{
+			name: "Should return the correct go source of the type if the type is only a qualifier",
+			fields: fields{
+				Qualifier: "string",
+			},
+			want: "string",
+		},
+		{
+			name: "Should return the correct go source of the type if the type is pointer qualifier",
+			fields: fields{
+				Pointer:   true,
+				Qualifier: "string",
+			},
+			want: "*string",
+		},
+		{
+			name: "Should return the correct go source of the type if the type is import qualifier",
+			fields: fields{
+				Import: &Import{
+					Alias: "test",
+					Path:  "test/test/test",
+				},
+				Qualifier: "Test",
+			},
+			want: "test.Test",
+		},
+		{
+			name: "Should return the correct go source of the type if the type is pointer import qualifier",
+			fields: fields{
+				Pointer: true,
+				Import: &Import{
+					Path: "test/test/test",
+				},
+				Qualifier: "Test",
+			},
+			want: "*test.Test",
+		},
+		{
+			name: "Should return the correct go source of the type if the type is method type",
+			fields: fields{
+				Method: NewMethodType(),
+			},
+			want: "func()",
+		},
+		{
+			name: "Should return the correct go source of the type if the type is method type pointer",
+			fields: fields{
+				Pointer: true,
+				Method:  NewMethodType(),
+			},
+			want: "*func()",
+		},
+		{
+			name: "Should return the correct go source of the type if the type is method type with parameters",
+			fields: fields{
+				Method: NewMethodType(
+					ParamsMethodOption(
+						*NewParameter("a", NewType("string")),
+					),
+					ResultsMethodOption(
+						*NewParameter("", NewType("string")),
+					),
+				),
+			},
+			want: "func(a string) string",
+		},
+		{
+			name: "Should return the correct go source of the type if the type is method type pointer with parameters",
+			fields: fields{
+				Pointer: true,
+				Method: NewMethodType(
+					ParamsMethodOption(
+						*NewParameter("a", NewType("string")),
+					),
+					ResultsMethodOption(
+						*NewParameter("", NewType("string")),
+					),
+				),
+			},
+			want: "*func(a string) string",
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -1240,7 +1316,12 @@ func TestType_AddDocs(t *testing.T) {
 		fields fields
 		args   args
 	}{
-		// TODO: Add test cases.
+		{
+			name: "Should do nothing",
+			args: args{
+				docs: []Comment{"test", "hello 123"},
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -1260,14 +1341,49 @@ func TestVar_Code(t *testing.T) {
 		docs  []Comment
 		Name  string
 		Type  Type
-		Value *jen.Statement
+		Value interface{}
 	}
 	tests := []struct {
 		name   string
 		fields fields
 		want   *jen.Statement
 	}{
-		// TODO: Add test cases.
+		{
+			name: "Should return the correct jen representation of a variable",
+			fields: fields{
+				Name: "Test",
+				Type: NewType("string"),
+			},
+			want: jen.Var().Id("Test").Add(jen.Id("string")),
+		},
+		{
+			name: "Should return the correct jen representation of a variable with value",
+			fields: fields{
+				Name:  "Test",
+				Type:  NewType("int"),
+				Value: 4,
+			},
+			want: jen.Var().Id("Test").Add(jen.Id("int")).Op("=").Lit(4),
+		},
+		{
+			name: "Should return the correct jen representation of a variable with docs",
+			fields: fields{
+				Name: "Test",
+				Type: NewType("string"),
+				docs: []Comment{"Hello"},
+			},
+			want: jen.Add(jen.Comment("Hello")).Line().Var().Id("Test").Add(jen.Id("string")),
+		},
+		{
+			name: "Should return the correct jen representation of a variable with docs and value",
+			fields: fields{
+				Name:  "Test",
+				Type:  NewType("int"),
+				docs:  []Comment{"Hello"},
+				Value: 4,
+			},
+			want: jen.Add(jen.Comment("Hello")).Line().Var().Id("Test").Add(jen.Id("int")).Op("=").Lit(4),
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -1289,14 +1405,49 @@ func TestVar_String(t *testing.T) {
 		docs  []Comment
 		Name  string
 		Type  Type
-		Value *jen.Statement
+		Value interface{}
 	}
 	tests := []struct {
 		name   string
 		fields fields
 		want   string
 	}{
-		// TODO: Add test cases.
+		{
+			name: "Should return the correct go string of a variable",
+			fields: fields{
+				Name: "Test",
+				Type: NewType("string"),
+			},
+			want: "var Test string",
+		},
+		{
+			name: "Should return the correct go string of a variable with value",
+			fields: fields{
+				Name:  "Test",
+				Type:  NewType("int"),
+				Value: 4,
+			},
+			want: "var Test int = 4",
+		},
+		{
+			name: "Should return the correct go string of a variable with docs",
+			fields: fields{
+				Name: "Test",
+				Type: NewType("string"),
+				docs: []Comment{"Hello"},
+			},
+			want: "// Hello\nvar Test string",
+		},
+		{
+			name: "Should return the correct go string of a variable with docs and value",
+			fields: fields{
+				Name:  "Test",
+				Type:  NewType("int"),
+				docs:  []Comment{"Hello"},
+				Value: 4,
+			},
+			want: "// Hello\nvar Test int = 4",
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -1318,7 +1469,7 @@ func TestVar_AddDocs(t *testing.T) {
 		docs  []Comment
 		Name  string
 		Type  Type
-		Value *jen.Statement
+		Value interface{}
 	}
 	type args struct {
 		docs []Comment
@@ -1327,8 +1478,30 @@ func TestVar_AddDocs(t *testing.T) {
 		name   string
 		fields fields
 		args   args
+		want   []Comment
 	}{
-		// TODO: Add test cases.
+		{
+			name: "Should add the docs to the variable",
+			fields: fields{
+				Name: "Test",
+				Type: NewType("string"),
+			},
+			args: args{
+				docs: []Comment{"This is some docs", "This is some more docs"},
+			},
+			want: []Comment{"This is some docs", "This is some more docs"},
+		}, {
+			name: "Should add the docs to the variable with existing docs",
+			fields: fields{
+				Name: "Test",
+				Type: NewType("string"),
+				docs: []Comment{"Some initial docs"},
+			},
+			args: args{
+				docs: []Comment{"This is some docs", "This is some more docs"},
+			},
+			want: []Comment{"Some initial docs", "This is some docs", "This is some more docs"},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -1339,28 +1512,103 @@ func TestVar_AddDocs(t *testing.T) {
 				Value: tt.fields.Value,
 			}
 			v.AddDocs(tt.args.docs...)
+			if !reflect.DeepEqual(v.docs, tt.want) {
+				t.Errorf("Var.docs = %v, want %v", v.docs, tt.want)
+			}
 		})
 	}
 }
 
 func TestConst_Code(t *testing.T) {
 	type fields struct {
-		Var Var
+		docs  []Comment
+		Name  string
+		Type  Type
+		Value interface{}
 	}
 	tests := []struct {
 		name   string
 		fields fields
 		want   *jen.Statement
 	}{
-		// TODO: Add test cases.
+
+		{
+			name: "Should return the correct jen representation of a constant",
+			fields: fields{
+				Name:  "Test",
+				Type:  NewType("int"),
+				Value: 4,
+			},
+			want: jen.Const().Id("Test").Add(jen.Id("int")).Op("=").Lit(4),
+		},
+
+		{
+			name: "Should return the correct jen representation of a constant with docs",
+			fields: fields{
+				Name:  "Test",
+				Type:  NewType("int"),
+				docs:  []Comment{"Hello"},
+				Value: 4,
+			},
+			want: jen.Add(jen.Comment("Hello")).Line().Const().Id("Test").Add(jen.Id("int")).Op("=").Lit(4),
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := &Const{
-				Var: tt.fields.Var,
+				docs:  tt.fields.docs,
+				Name:  tt.fields.Name,
+				Type:  tt.fields.Type,
+				Value: tt.fields.Value,
 			}
 			if got := c.Code(); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("Const.Code() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+func TestConst_String(t *testing.T) {
+	type fields struct {
+		docs  []Comment
+		Name  string
+		Type  Type
+		Value interface{}
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		want   string
+	}{
+		{
+			name: "Should return the correct go string of a constant",
+			fields: fields{
+				Name:  "Test",
+				Type:  NewType("int"),
+				Value: 4,
+			},
+			want: "const Test int = 4",
+		},
+		{
+			name: "Should return the correct go string of a constant with docs",
+			fields: fields{
+				Name:  "Test",
+				Type:  NewType("int"),
+				docs:  []Comment{"Hello"},
+				Value: 4,
+			},
+			want: "// Hello\nconst Test int = 4",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := &Const{
+				docs:  tt.fields.docs,
+				Name:  tt.fields.Name,
+				Type:  tt.fields.Type,
+				Value: tt.fields.Value,
+			}
+			if got := c.String(); got != tt.want {
+				t.Errorf("Const.String() = %v, want %v", got, tt.want)
 			}
 		})
 	}
@@ -1841,7 +2089,10 @@ func TestNewTypeMethod(t *testing.T) {
 
 func TestTypeMethod_Code(t *testing.T) {
 	type fields struct {
-		Method Method
+		Name    string
+		docs    []Comment
+		Params  []Parameter
+		Results []Parameter
 	}
 	tests := []struct {
 		name   string
@@ -1853,7 +2104,10 @@ func TestTypeMethod_Code(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			m := &MethodType{
-				Method: tt.fields.Method,
+				Name:    tt.fields.Name,
+				docs:    tt.fields.docs,
+				Params:  tt.fields.Params,
+				Results: tt.fields.Results,
 			}
 			if got := m.Code(); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("MethodType.Code() = %v, want %v", got, tt.want)
