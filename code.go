@@ -283,10 +283,7 @@ func (t Type) AddDocs(docs ...Comment) {
 
 func (v *Var) Code() *jen.Statement {
 	code := &jen.Statement{}
-	if v.docs != nil {
-		addDocsCode(code, v.docs)
-		code.Line()
-	}
+	addDocsCode(code, v.docs)
 	code.Var().Id(v.Name).Add(v.Type.Code())
 	if v.Value != nil {
 		code.Op("=").Lit(v.Value)
@@ -306,10 +303,7 @@ func (v *Var) AddDocs(docs ...Comment) {
 
 func (c *Const) Code() *jen.Statement {
 	code := &jen.Statement{}
-	if c.docs != nil {
-		addDocsCode(code, c.docs)
-		code.Line()
-	}
+	addDocsCode(code, c.docs)
 	code.Const().Id(c.Name).Add(c.Type.Code())
 	if c.Value != nil {
 		code.Op("=").Lit(c.Value)
@@ -324,7 +318,11 @@ func (c *Const) AddDocs(docs ...Comment) {
 }
 
 func (p *Parameter) Code() *jen.Statement {
-	return jen.Id(p.Name).Add(p.Type.Code())
+	c := &jen.Statement{}
+	if p.Name != "" {
+		c.Id(p.Name)
+	}
+	return c.Add(p.Type.Code())
 }
 
 func (p *Parameter) String() string {
@@ -371,9 +369,10 @@ func (m *Method) Code() *jen.Statement {
 	}
 	code.Id(m.Name)
 	code.Params(paramsList(m.Params)...)
-	code.Params(paramsList(m.Results)...)
-	code.Block(m.Body...)
-	return code
+	if m.Results != nil {
+		code.Params(paramsList(m.Results)...)
+	}
+	return code.Block(m.Body...)
 }
 
 func (m *Method) AddDocs(docs ...Comment) {
@@ -391,14 +390,26 @@ func (m *Method) AddStringBody(s string) {
 func (s *StructField) Code() *jen.Statement {
 	code := &jen.Statement{}
 	addDocsCode(code, s.docs)
-	return code.Id(s.Name).Add(s.Type.Code()).Tag(s.Tags)
+	code.Id(s.Name).Add(s.Type.Code())
+	if s.Tags != nil && len(s.Tags) > 0 {
+		code.Tag(s.Tags)
+	}
+	return code
+}
+func (s *StructField) String() string {
+	code := s.Code()
+	// Hack to get the reader to not throw errors in struct fields
+	fakeStruct := jen.Type().Id("_").Struct(code)
+	str := fakeStruct.GoString()
+	str = strings.TrimPrefix(str, "type _ struct {\n\t")
+	str = strings.TrimSuffix(str, "\n}")
+	// -----
+	return str
 }
 
 func (s *Struct) Code() *jen.Statement {
 	code := &jen.Statement{}
-	if s.docs != nil {
-		addDocsCode(code, s.docs)
-	}
+	addDocsCode(code, s.docs)
 	return code.Type().Id(s.Name).Struct(fieldList(s.Fields)...)
 }
 func fieldList(fields []StructField) (f []jen.Code) {
@@ -447,7 +458,7 @@ func prepareLines(s string) string {
 }
 func addDocsCode(c *jen.Statement, docs []Comment) {
 	for _, d := range docs {
-		c.Add(d.Code())
+		c.Add(d.Code().Line())
 	}
 }
 

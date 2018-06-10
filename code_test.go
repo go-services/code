@@ -1362,7 +1362,7 @@ func TestVar_Code(t *testing.T) {
 				Type: NewType("string"),
 				docs: []Comment{"Hello"},
 			},
-			want: jen.Add(jen.Comment("Hello")).Line().Var().Id("Test").Add(jen.Id("string")),
+			want: jen.Add(jen.Comment("Hello").Line()).Var().Id("Test").Add(jen.Id("string")),
 		},
 		{
 			name: "Should return the correct jen representation of a variable with docs and value",
@@ -1372,7 +1372,7 @@ func TestVar_Code(t *testing.T) {
 				docs:  []Comment{"Hello"},
 				Value: 4,
 			},
-			want: jen.Add(jen.Comment("Hello")).Line().Var().Id("Test").Add(jen.Id("int")).Op("=").Lit(4),
+			want: jen.Add(jen.Comment("Hello").Line()).Var().Id("Test").Add(jen.Id("int")).Op("=").Lit(4),
 		},
 	}
 	for _, tt := range tests {
@@ -1540,7 +1540,7 @@ func TestConst_Code(t *testing.T) {
 				docs:  []Comment{"Hello"},
 				Value: 4,
 			},
-			want: jen.Add(jen.Comment("Hello")).Line().Const().Id("Test").Add(jen.Id("int")).Op("=").Lit(4),
+			want: jen.Add(jen.Comment("Hello").Line()).Const().Id("Test").Add(jen.Id("int")).Op("=").Lit(4),
 		},
 	}
 	for _, tt := range tests {
@@ -1654,7 +1654,6 @@ func TestConst_AddDocs(t *testing.T) {
 				Value: tt.fields.Value,
 			}
 			c.AddDocs(tt.args.docs...)
-
 			if !reflect.DeepEqual(c.docs, tt.want) {
 				t.Errorf("Const.docs = %v, want %v", c.docs, tt.want)
 			}
@@ -1799,7 +1798,96 @@ func TestMethod_Code(t *testing.T) {
 		fields fields
 		want   *jen.Statement
 	}{
-		{},
+		{
+			name: "Should return the correct jen representation of a method",
+			fields: fields{
+				Name: "Test",
+			},
+			want: jen.Func().Id("Test").Params().Block(),
+		},
+		{
+			name: "Should return the correct jen representation of a method with parameters",
+			fields: fields{
+				Name:   "Test",
+				Params: []Parameter{*NewParameter("t", NewType("hi"))},
+			},
+			want: jen.Func().Id("Test").Params(NewParameter("t", NewType("hi")).Code()).Block(),
+		},
+		{
+			name: "Should return the correct jen representation of a method with result",
+			fields: fields{
+				Name:    "Test",
+				Results: []Parameter{*NewParameter("r", NewType("hi"))},
+			},
+			want: jen.Func().Id("Test").Params().Params(NewParameter("r", NewType("hi")).Code()).Block(),
+		},
+		{
+			name: "Should return the correct jen representation of a method with parameters and result",
+			fields: fields{
+				Name:    "Test",
+				Params:  []Parameter{*NewParameter("t", NewType("hi"))},
+				Results: []Parameter{*NewParameter("r", NewType("hi"))},
+			},
+			want: jen.Func().Id("Test").Params(
+				NewParameter("t", NewType("hi")).Code(),
+			).Params(NewParameter("r", NewType("hi")).Code()).Block(),
+		},
+		{
+			name: "Should return the correct jen representation of a method with receiver",
+			fields: fields{
+				Name: "Test",
+				Recv: NewParameter("t", NewType("hi")),
+			},
+			want: jen.Func().Params(NewParameter("t", NewType("hi")).Code()).Id("Test").Params().Block(),
+		},
+		{
+			name: "Should return the correct jen representation of a method with parameters and receiver",
+			fields: fields{
+				Name:   "Test",
+				Recv:   NewParameter("rcv", NewType("hi")),
+				Params: []Parameter{*NewParameter("t", NewType("hi"))},
+			},
+			want: jen.Func().Params(
+				NewParameter("rcv", NewType("hi")).Code(),
+			).Id("Test").Params(NewParameter("t", NewType("hi")).Code()).Block(),
+		},
+		{
+			name: "Should return the correct jen representation of a method with parameters and response and receiver",
+			fields: fields{
+				Name:    "Test",
+				Recv:    NewParameter("rcv", NewType("hi")),
+				Params:  []Parameter{*NewParameter("t", NewType("hi"))},
+				Results: []Parameter{*NewParameter("r", NewType("hi"))},
+			},
+			want: jen.Func().Params(
+				NewParameter("rcv", NewType("hi")).Code(),
+			).Id("Test").Params(
+				NewParameter("t", NewType("hi")).Code(),
+			).Params(NewParameter("r", NewType("hi")).Code()).Block(),
+		},
+		{
+			name: "Should return the correct jen representation of a method with parameters and response and receiver with docs",
+			fields: fields{
+				docs:    []Comment{"Hello", "Hi", "123"},
+				Name:    "Test",
+				Recv:    NewParameter("rcv", NewType("hi")),
+				Params:  []Parameter{*NewParameter("t", NewType("hi"))},
+				Results: []Parameter{*NewParameter("r", NewType("hi"))},
+			},
+			want: jen.Add(jen.Comment("Hello").Line(), jen.Comment("Hi").Line(), jen.Comment("123").Line()).Func().Params(
+				NewParameter("rcv", NewType("hi")).Code(),
+			).Id("Test").Params(
+				NewParameter("t", NewType("hi")).Code(),
+			).Params(NewParameter("r", NewType("hi")).Code()).Block(),
+		},
+		{
+			name: "Should return the correct jen representation of a method with body",
+			fields: fields{
+				Name: "Test",
+				Body: []jen.Code{jen.Id("fmt.Println(\"Hello\")")},
+			},
+			want: jen.Func().Id("Test").Params().Block([]jen.Code{jen.Id("fmt.Println(\"Hello\")")}...),
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -1834,8 +1922,27 @@ func TestMethod_AddDocs(t *testing.T) {
 		name   string
 		fields fields
 		args   args
-	}{
-		// TODO: Add test cases.
+		want   []Comment
+	}{{
+		name: "Should add the docs to the method",
+		fields: fields{
+			Name: "Test",
+		},
+		args: args{
+			docs: []Comment{"This is some docs", "This is some more docs"},
+		},
+		want: []Comment{"This is some docs", "This is some more docs"},
+	}, {
+		name: "Should add the docs to the method with existing docs",
+		fields: fields{
+			Name: "Test",
+			docs: []Comment{"Some initial docs"},
+		},
+		args: args{
+			docs: []Comment{"This is some docs", "This is some more docs"},
+		},
+		want: []Comment{"Some initial docs", "This is some docs", "This is some more docs"},
+	},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -1848,6 +1955,9 @@ func TestMethod_AddDocs(t *testing.T) {
 				Body:    tt.fields.Body,
 			}
 			m.AddDocs(tt.args.docs...)
+			if !reflect.DeepEqual(m.docs, tt.want) {
+				t.Errorf("Method.docs = %v, want %v", m.docs, tt.want)
+			}
 		})
 	}
 }
@@ -1866,7 +1976,84 @@ func TestMethod_String(t *testing.T) {
 		fields fields
 		want   string
 	}{
-		// TODO: Add test cases.
+		{
+			name: "Should return the correct jen representation of a method",
+			fields: fields{
+				Name: "Test",
+			},
+			want: "func Test() {}",
+		},
+		{
+			name: "Should return the correct jen representation of a method with parameters",
+			fields: fields{
+				Name:   "Test",
+				Params: []Parameter{*NewParameter("t", NewType("hi"))},
+			},
+			want: "func Test(t hi) {}",
+		},
+		{
+			name: "Should return the correct jen representation of a method with result",
+			fields: fields{
+				Name:    "Test",
+				Results: []Parameter{*NewParameter("r", NewType("hi"))},
+			},
+			want: "func Test() (r hi) {}",
+		},
+		{
+			name: "Should return the correct jen representation of a method with parameters and result",
+			fields: fields{
+				Name:    "Test",
+				Params:  []Parameter{*NewParameter("t", NewType("hi"))},
+				Results: []Parameter{*NewParameter("r", NewType("hi"))},
+			},
+			want: "func Test(t hi) (r hi) {}",
+		},
+		{
+			name: "Should return the correct jen representation of a method with receiver",
+			fields: fields{
+				Name: "Test",
+				Recv: NewParameter("rcv", NewType("hi")),
+			},
+			want: "func (rcv hi) Test() {}",
+		},
+		{
+			name: "Should return the correct jen representation of a method with parameters and receiver",
+			fields: fields{
+				Name:   "Test",
+				Recv:   NewParameter("rcv", NewType("hi")),
+				Params: []Parameter{*NewParameter("t", NewType("hi"))},
+			},
+			want: "func (rcv hi) Test(t hi) {}",
+		},
+		{
+			name: "Should return the correct jen representation of a method with parameters and response and receiver",
+			fields: fields{
+				Name:    "Test",
+				Recv:    NewParameter("rcv", NewType("hi")),
+				Params:  []Parameter{*NewParameter("t", NewType("hi"))},
+				Results: []Parameter{*NewParameter("r", NewType("hi"))},
+			},
+			want: "func (rcv hi) Test(t hi) (r hi) {}",
+		},
+		{
+			name: "Should return the correct jen representation of a method with parameters and response and receiver with docs",
+			fields: fields{
+				docs:    []Comment{"Hello", "Hi", "123"},
+				Name:    "Test",
+				Recv:    NewParameter("rcv", NewType("hi")),
+				Params:  []Parameter{*NewParameter("t", NewType("hi"))},
+				Results: []Parameter{*NewParameter("r", NewType("hi"))},
+			},
+			want: "// Hello\n// Hi\n// 123\nfunc (rcv hi) Test(t hi) (r hi) {}",
+		},
+		{
+			name: "Should return the correct jen representation of a method with body",
+			fields: fields{
+				Name: "Test",
+				Body: []jen.Code{jen.Id("fmt.Println(\"Hello\")")},
+			},
+			want: "func Test() {\n\tfmt.Println(\"Hello\")\n}",
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -1901,8 +2088,29 @@ func TestMethod_AddStringBody(t *testing.T) {
 		name   string
 		fields fields
 		args   args
+		want   []jen.Code
 	}{
-		// TODO: Add test cases.
+		{
+			name: "Should add raw string body to method",
+			fields: fields{
+				Name: "Test",
+			},
+			args: args{
+				s: "fmt.Println(\"Hello\")",
+			},
+			want: []jen.Code{jen.Id("fmt.Println(\"Hello\")")},
+		},
+		{
+			name: "Should add raw string body to existing body",
+			fields: fields{
+				Name: "Test",
+				Body: []jen.Code{jen.Id("a := 2\nprint(a)")},
+			},
+			args: args{
+				s: "fmt.Println(\"Hello\")",
+			},
+			want: []jen.Code{jen.Id("a := 2\nprint(a)"), jen.Id("fmt.Println(\"Hello\")")},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -1915,6 +2123,9 @@ func TestMethod_AddStringBody(t *testing.T) {
 				Body:    tt.fields.Body,
 			}
 			m.AddStringBody(tt.args.s)
+			if !reflect.DeepEqual(m.Body, tt.want) {
+				t.Errorf("Method.Body = %v, want %v", m.docs, tt.want)
+			}
 		})
 	}
 }
@@ -1929,7 +2140,21 @@ func TestStructField_Code(t *testing.T) {
 		fields fields
 		want   *jen.Statement
 	}{
-		// TODO: Add test cases.
+		{
+			name: "Should return the correct jen representative of a structure field",
+			fields: fields{
+				Parameter: *NewParameter("test", NewType("string")),
+			},
+			want: jen.Id("test").Add(jen.Id("string")),
+		},
+		{
+			name: "Should return the correct jen representative of a structure field with tags",
+			fields: fields{
+				Parameter: *NewParameter("test", NewType("string")),
+				Tags:      NewFieldTags("json", "test"),
+			},
+			want: jen.Id("test").Add(jen.Id("string")).Tag(NewFieldTags("json", "test")),
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -1939,6 +2164,47 @@ func TestStructField_Code(t *testing.T) {
 			}
 			if got := s.Code(); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("StructField.Code() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestStructField_String(t *testing.T) {
+	type fields struct {
+		docs      []Comment
+		Parameter Parameter
+		Tags      FieldTags
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		want   string
+	}{
+		{
+			name: "Should return the correct jen representative of a structure field",
+			fields: fields{
+				Parameter: *NewParameter("test", NewType("string")),
+			},
+			want: "test string",
+		},
+		{
+			name: "Should return the correct jen representative of a structure field with tags",
+			fields: fields{
+				Parameter: *NewParameter("test", NewType("string")),
+				Tags:      NewFieldTags("json", "test"),
+			},
+			want: "test string `json:\"test\"`",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := &StructField{
+				docs:      tt.fields.docs,
+				Parameter: tt.fields.Parameter,
+				Tags:      tt.fields.Tags,
+			}
+			if got := s.String(); got != tt.want {
+				t.Errorf("StructField.String() = %v, want %v", got, tt.want)
 			}
 		})
 	}
@@ -1955,7 +2221,7 @@ func TestStruct_Code(t *testing.T) {
 		fields fields
 		want   *jen.Statement
 	}{
-		// TODO: Add test cases.
+		{},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
