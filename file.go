@@ -6,8 +6,8 @@ import (
 )
 
 type ImportAlias struct {
-	Name    string
-	Package string
+	Name string
+	Path string
 }
 type File struct {
 	pkg     string
@@ -24,18 +24,24 @@ func NewFile(packageName string, code ...Code) *File {
 	f.jenFile = jen.NewFile(packageName)
 	return f
 }
+func NewImportAlias(name, path string) ImportAlias {
+	return ImportAlias{
+		Name: name,
+		Path: path,
+	}
+}
 
 func (f *File) SetImportAliases(ia []ImportAlias) {
 	if f.jenFile == nil {
 		return
 	}
 	for _, i := range ia {
-		f.jenFile.ImportAlias(i.Package, i.Name)
+		f.jenFile.ImportAlias(i.Path, i.Name)
 	}
 }
 func (f *File) String() string {
 	if f.jenFile == nil {
-		return "package " + f.pkg
+		return "package " + f.pkg + "\n"
 	}
 	for _, c := range f.Code {
 		f.jenFile.Add(c.Code())
@@ -60,35 +66,30 @@ func (f *File) AppendAfter(c Code, new Code) error {
 	}
 	f.Code = append(
 		f.Code[:inx],
-		[]Code{
-			new,
-			f.Code[inx],
-		}...,
+		append([]Code{new}, f.Code[inx:]...)...,
 	)
 	return nil
 }
 
 func (f *File) PrependBefore(c Code, new Code) error {
-	inx := -2
+	inx := -1
 	for i, v := range f.Code {
 		if v == c {
-			inx = i - 1
+			inx = i
 			break
 		}
 	}
-	if inx == -2 {
+	if inx == -1 {
 		return errors.New("Could not find the code node to append after")
 	}
 	if inx == 0 {
 		f.Code = append([]Code{new}, f.Code...)
 		return nil
 	}
+
 	f.Code = append(
 		f.Code[:inx],
-		[]Code{
-			new,
-			f.Code[inx],
-		}...,
+		append([]Code{new}, f.Code[inx:]...)...,
 	)
 	return nil
 }

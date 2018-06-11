@@ -51,7 +51,7 @@ type FieldTags map[string]string
 type StructField struct {
 	docs []Comment
 	Parameter
-	Tags FieldTags
+	Tags *FieldTags
 }
 
 type Struct struct {
@@ -156,20 +156,22 @@ func NewParameter(name string, tp Type) *Parameter {
 		Type: tp,
 	}
 }
-func NewFieldTags(key, value string) FieldTags {
-	return FieldTags(map[string]string{key: value})
+func NewFieldTags(key, value string) *FieldTags {
+	return &FieldTags{
+		key: value,
+	}
 }
-func NewStructField(name string, tp Type, docs ...Comment) StructField {
+func NewStructField(name string, tp Type, docs ...Comment) *StructField {
 	pr := &Parameter{
 		Name: name,
 		Type: tp,
 	}
-	return StructField{
+	return &StructField{
 		docs:      docs,
 		Parameter: *pr,
 	}
 }
-func NewStructFieldWithTag(name string, tp Type, tags FieldTags, docs ...Comment) StructField {
+func NewStructFieldWithTag(name string, tp Type, tags *FieldTags, docs ...Comment) *StructField {
 	sf := NewStructField(name, tp, docs...)
 	sf.Tags = tags
 	return sf
@@ -202,7 +204,7 @@ func RecvMethodOption(recv *Parameter) MethodOptions {
 		m.Recv = recv
 	}
 }
-func BodyMethodOption(body []jen.Code) MethodOptions {
+func BodyMethodOption(body ...jen.Code) MethodOptions {
 	return func(m *Method) {
 		m.Body = body
 	}
@@ -343,7 +345,9 @@ func (m *MethodType) Code() *jen.Statement {
 	code := &jen.Statement{}
 	code.Func()
 	code.Params(paramsList(m.Params)...)
-	code.Params(paramsList(m.Results)...)
+	if m.Results != nil && len(m.Results) > 0 {
+		code.Params(paramsList(m.Results)...)
+	}
 	return code
 }
 func (m *MethodType) String() string {
@@ -369,7 +373,7 @@ func (m *Method) Code() *jen.Statement {
 	}
 	code.Id(m.Name)
 	code.Params(paramsList(m.Params)...)
-	if m.Results != nil {
+	if m.Results != nil && len(m.Results) > 0 {
 		code.Params(paramsList(m.Results)...)
 	}
 	return code.Block(m.Body...)
@@ -391,8 +395,8 @@ func (s *StructField) Code() *jen.Statement {
 	code := &jen.Statement{}
 	addDocsCode(code, s.docs)
 	code.Id(s.Name).Add(s.Type.Code())
-	if s.Tags != nil && len(s.Tags) > 0 {
-		code.Tag(s.Tags)
+	if s.Tags != nil {
+		code.Tag(*s.Tags)
 	}
 	return code
 }
@@ -404,7 +408,7 @@ func (s *StructField) String() string {
 	str = strings.TrimPrefix(str, "type _ struct {\n\t")
 	str = strings.TrimSuffix(str, "\n}")
 	// -----
-	return str
+	return prepareLines(str)
 }
 
 func (s *Struct) Code() *jen.Statement {
@@ -432,11 +436,52 @@ func (m *InterfaceMethod) Code() *jen.Statement {
 	addDocsCode(code, m.docs)
 	code.Id(m.Name)
 	code.Params(paramsList(m.Params)...)
-	code.Params(paramsList(m.Results)...)
+	if m.Results != nil && len(m.Results) > 0 {
+		code.Params(paramsList(m.Results)...)
+
+	}
 	return code
 }
+
+func (m *InterfaceMethod) String() string {
+	code := m.Code()
+	// Hack to get the reader to not throw errors in struct fields
+	fakeStruct := jen.Type().Id("_").Interface(code)
+	str := fakeStruct.GoString()
+	str = strings.TrimPrefix(str, "type _ interface {\n\t")
+	str = strings.TrimSuffix(str, "\n}")
+	// -----
+	return prepareLines(str)
+}
+
+func (m *InterfaceMethod) AddDocs(docs ...Comment) {
+	m.docs = append(m.docs, docs...)
+}
+func (i *Interface) Code() *jen.Statement {
+	code := &jen.Statement{}
+	addDocsCode(code, i.docs)
+	code.Type().Id(i.Name).Interface(
+		func() []jen.Code {
+			var c []jen.Code
+			for _, m := range i.Methods {
+				c = append(c, m.Code())
+			}
+			return c
+		}()...,
+	)
+	return code
+}
+
+func (i *Interface) String() string {
+	return codeString(i)
+}
+
+func (i *Interface) AddDocs(docs ...Comment) {
+	i.docs = append(i.docs, docs...)
+}
+
 func (f *FieldTags) Set(key, value string) {
-	if f == nil {
+	if *f == nil {
 		*f = map[string]string{
 			key: value,
 		}
@@ -447,6 +492,12 @@ func codeString(c Code) string {
 	return c.Code().GoString()
 }
 
+func addDocsCode(c *jen.Statement, docs []Comment) {
+	for _, d := range docs {
+		c.Add(d.Code().Line())
+	}
+}
+
 func prepareLines(s string) string {
 	lines := strings.Split(s, "\n")
 	var results []string
@@ -455,11 +506,6 @@ func prepareLines(s string) string {
 		results = append(results, strings.TrimPrefix(l, "\t"))
 	}
 	return string(strings.Join(results, "\n"))
-}
-func addDocsCode(c *jen.Statement, docs []Comment) {
-	for _, d := range docs {
-		c.Add(d.Code().Line())
-	}
 }
 
 func paramsList(paramList []Parameter) (l []jen.Code) {

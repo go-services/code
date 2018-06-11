@@ -239,6 +239,41 @@ func TestNewType(t *testing.T) {
 	}
 }
 
+func TestNewMethodType(t *testing.T) {
+	type args struct {
+		options []MethodOptions
+	}
+	tests := []struct {
+		name string
+		args args
+		want *MethodType
+	}{
+		{
+			name: "Should return a new method type",
+			want: &MethodType{},
+		},
+		{
+			name: "Should return a new method type with options",
+			args: args{
+				options: []MethodOptions{
+					DocsMethodOption("Test", "Hello"),
+					RecvMethodOption(NewParameter("hi", NewType("string"))),
+				},
+			},
+			want: &MethodType{
+				docs: []Comment{"Test", "Hello"},
+				Recv: NewParameter("hi", NewType("string")),
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := NewMethodType(tt.args.options...); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("NewMethodType() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
 func TestNewVar(t *testing.T) {
 	type args struct {
 		name string
@@ -459,7 +494,7 @@ func TestNewFieldTags(t *testing.T) {
 	tests := []struct {
 		name string
 		args args
-		want FieldTags
+		want *FieldTags
 	}{
 		{
 			name: "Should return a new field tag with initial key and value pair",
@@ -467,7 +502,7 @@ func TestNewFieldTags(t *testing.T) {
 				key:   "json",
 				value: "name",
 			},
-			want: FieldTags{
+			want: &FieldTags{
 				"json": "name",
 			},
 		},
@@ -490,7 +525,7 @@ func TestNewStructField(t *testing.T) {
 	tests := []struct {
 		name string
 		args args
-		want StructField
+		want *StructField
 	}{
 		{
 			name: "Should return a new structure field",
@@ -498,7 +533,7 @@ func TestNewStructField(t *testing.T) {
 				name: "Test",
 				tp:   NewType("string"),
 			},
-			want: StructField{
+			want: &StructField{
 				Parameter: Parameter{
 					Name: "Test",
 					Type: NewType("string"),
@@ -516,7 +551,7 @@ func TestNewStructField(t *testing.T) {
 					"Go Here",
 				},
 			},
-			want: StructField{
+			want: &StructField{
 				Parameter: Parameter{
 					Name: "Test",
 					Type: NewType("string"),
@@ -542,13 +577,13 @@ func TestNewStructFieldWithTag(t *testing.T) {
 	type args struct {
 		name string
 		tp   Type
-		tags FieldTags
+		tags *FieldTags
 		docs []Comment
 	}
 	tests := []struct {
 		name string
 		args args
-		want StructField
+		want *StructField
 	}{
 		{
 			name: "Should return a new structure field with tags",
@@ -557,7 +592,7 @@ func TestNewStructFieldWithTag(t *testing.T) {
 				tp:   NewType("string"),
 				tags: NewFieldTags("json", "test"),
 			},
-			want: StructField{
+			want: &StructField{
 				Parameter: Parameter{
 					Name: "Test",
 					Type: NewType("string"),
@@ -577,7 +612,7 @@ func TestNewStructFieldWithTag(t *testing.T) {
 					"Go Here",
 				},
 			},
-			want: StructField{
+			want: &StructField{
 				Parameter: Parameter{
 					Name: "Test",
 					Type: NewType("string"),
@@ -662,13 +697,13 @@ func TestNewStructWithFields(t *testing.T) {
 			args: args{
 				name: "Test",
 				fields: []StructField{
-					NewStructField("test", NewType("string")),
+					*NewStructField("test", NewType("string")),
 				},
 			},
 			want: &Struct{
 				Name: "Test",
 				Fields: []StructField{
-					NewStructField("test", NewType("string")),
+					*NewStructField("test", NewType("string")),
 				},
 			},
 		},
@@ -677,7 +712,7 @@ func TestNewStructWithFields(t *testing.T) {
 			args: args{
 				name: "Test",
 				fields: []StructField{
-					NewStructField("test", NewType("string")),
+					*NewStructField("test", NewType("string")),
 				},
 				docs: []Comment{
 					"Some",
@@ -688,7 +723,7 @@ func TestNewStructWithFields(t *testing.T) {
 			want: &Struct{
 				Name: "Test",
 				Fields: []StructField{
-					NewStructField("test", NewType("string")),
+					*NewStructField("test", NewType("string")),
 				},
 				docs: []Comment{
 					"Some",
@@ -842,7 +877,7 @@ func TestBodyMethodOption(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := BodyMethodOption(tt.args.body)
+			got := BodyMethodOption(tt.args.body...)
 			got(tt.args.mth)
 			if !reflect.DeepEqual(tt.args.mth, tt.want) {
 				t.Errorf("Method = %v, want %v", tt.args.mth, tt.want)
@@ -1156,7 +1191,7 @@ func TestType_Code(t *testing.T) {
 			fields: fields{
 				Method: NewMethodType(),
 			},
-			want: jen.Add(jen.Func().Params().Params()),
+			want: jen.Add(jen.Func().Params()),
 		},
 		{
 			name: "Should return the correct jen representation of the type if the type is method type pointer",
@@ -1164,7 +1199,7 @@ func TestType_Code(t *testing.T) {
 				Pointer: true,
 				Method:  NewMethodType(),
 			},
-			want: jen.Id("*").Add(jen.Func().Params().Params()),
+			want: jen.Id("*").Add(jen.Func().Params()),
 		},
 	}
 	for _, tt := range tests {
@@ -1632,7 +1667,8 @@ func TestConst_AddDocs(t *testing.T) {
 				docs: []Comment{"This is some docs", "This is some more docs"},
 			},
 			want: []Comment{"This is some docs", "This is some more docs"},
-		}, {
+		},
+		{
 			name: "Should add the docs to the variable with existing docs",
 			fields: fields{
 				Name: "Test",
@@ -2132,8 +2168,9 @@ func TestMethod_AddStringBody(t *testing.T) {
 
 func TestStructField_Code(t *testing.T) {
 	type fields struct {
+		docs      []Comment
 		Parameter Parameter
-		Tags      FieldTags
+		Tags      *FieldTags
 	}
 	tests := []struct {
 		name   string
@@ -2153,7 +2190,16 @@ func TestStructField_Code(t *testing.T) {
 				Parameter: *NewParameter("test", NewType("string")),
 				Tags:      NewFieldTags("json", "test"),
 			},
-			want: jen.Id("test").Add(jen.Id("string")).Tag(NewFieldTags("json", "test")),
+			want: jen.Id("test").Add(jen.Id("string")).Tag(*NewFieldTags("json", "test")),
+		},
+		{
+			name: "Should return the correct jen representative of a structure field with tags and docs",
+			fields: fields{
+				Parameter: *NewParameter("test", NewType("string")),
+				Tags:      NewFieldTags("json", "test"),
+				docs:      []Comment{"Hello", "test"},
+			},
+			want: jen.Add(jen.Comment("Hello").Line(), jen.Comment("test").Line()).Id("test").Add(jen.Id("string")).Tag(*NewFieldTags("json", "test")),
 		},
 	}
 	for _, tt := range tests {
@@ -2161,6 +2207,7 @@ func TestStructField_Code(t *testing.T) {
 			s := &StructField{
 				Parameter: tt.fields.Parameter,
 				Tags:      tt.fields.Tags,
+				docs:      tt.fields.docs,
 			}
 			if got := s.Code(); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("StructField.Code() = %v, want %v", got, tt.want)
@@ -2173,7 +2220,7 @@ func TestStructField_String(t *testing.T) {
 	type fields struct {
 		docs      []Comment
 		Parameter Parameter
-		Tags      FieldTags
+		Tags      *FieldTags
 	}
 	tests := []struct {
 		name   string
@@ -2194,6 +2241,15 @@ func TestStructField_String(t *testing.T) {
 				Tags:      NewFieldTags("json", "test"),
 			},
 			want: "test string `json:\"test\"`",
+		},
+		{
+			name: "Should return the correct jen representative of a structure field with tags and docs",
+			fields: fields{
+				Parameter: *NewParameter("test", NewType("string")),
+				Tags:      NewFieldTags("json", "test"),
+				docs:      []Comment{"Hello", "test"},
+			},
+			want: "// Hello\n// test\ntest string `json:\"test\"`",
 		},
 	}
 	for _, tt := range tests {
@@ -2220,7 +2276,32 @@ func TestStruct_Code(t *testing.T) {
 		name   string
 		fields fields
 		want   *jen.Statement
-	}{}
+	}{
+		{
+			name: "Should return the correct jen representation of a struct",
+			fields: fields{
+				Name: "Test",
+			},
+			want: jen.Type().Id("Test").Struct(),
+		},
+		{
+			name: "Should return the correct jen representation of a struct with fields",
+			fields: fields{
+				Name:   "Test",
+				Fields: []StructField{*NewStructField("test", NewType("string"))},
+			},
+			want: jen.Type().Id("Test").Struct(NewStructField("test", NewType("string")).Code()),
+		},
+		{
+			name: "Should return the correct jen representation of a struct with fields",
+			fields: fields{
+				docs:   []Comment{"Hello"},
+				Name:   "Test",
+				Fields: []StructField{*NewStructField("test", NewType("string"))},
+			},
+			want: jen.Add(jen.Comment("Hello").Line()).Type().Id("Test").Struct(NewStructField("test", NewType("string")).Code()),
+		},
+	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			s := &Struct{
@@ -2244,7 +2325,19 @@ func Test_fieldList(t *testing.T) {
 		args  args
 		wantF []jen.Code
 	}{
-		// TODO: Add test cases.
+		{
+			name: "Should return the jen representation of a struct fields list",
+			args: args{
+				fields: []StructField{
+					*NewStructField("test", NewType("string")),
+					*NewStructField("abc", NewType("int")),
+				},
+			},
+			wantF: []jen.Code{
+				NewStructField("test", NewType("string")).Code(),
+				NewStructField("abc", NewType("int")).Code(),
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -2266,7 +2359,31 @@ func TestStruct_String(t *testing.T) {
 		fields fields
 		want   string
 	}{
-		// TODO: Add test cases.
+
+		{
+			name: "Should return the correct jen representation of a struct",
+			fields: fields{
+				Name: "Test",
+			},
+			want: "type Test struct{}",
+		},
+		{
+			name: "Should return the correct jen representation of a struct with fields",
+			fields: fields{
+				Name:   "Test",
+				Fields: []StructField{*NewStructField("test", NewType("string"))},
+			},
+			want: "type Test struct {\n\ttest string\n}",
+		},
+		{
+			name: "Should return the correct jen representation of a struct with fields",
+			fields: fields{
+				docs:   []Comment{"Hello"},
+				Name:   "Test",
+				Fields: []StructField{*NewStructField("test", NewType("string"))},
+			},
+			want: "// Hello\ntype Test struct {\n\ttest string\n}",
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -2295,8 +2412,29 @@ func TestStruct_AddDocs(t *testing.T) {
 		name   string
 		fields fields
 		args   args
+		want   []Comment
 	}{
-		// TODO: Add test cases.
+		{
+			name: "Should add the docs to the structure",
+			fields: fields{
+				Name: "Test",
+			},
+			args: args{
+				docs: []Comment{"This is some docs", "This is some more docs"},
+			},
+			want: []Comment{"This is some docs", "This is some more docs"},
+		},
+		{
+			name: "Should add the docs to the structure with existing docs",
+			fields: fields{
+				Name: "Test",
+				docs: []Comment{"Some initial docs"},
+			},
+			args: args{
+				docs: []Comment{"This is some docs", "This is some more docs"},
+			},
+			want: []Comment{"Some initial docs", "This is some docs", "This is some more docs"},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -2306,11 +2444,97 @@ func TestStruct_AddDocs(t *testing.T) {
 				Fields: tt.fields.Fields,
 			}
 			s.AddDocs(tt.args.docs...)
+
+			if !reflect.DeepEqual(s.docs, tt.want) {
+				t.Errorf("Struct.docs = %v, want %v", s.docs, tt.want)
+			}
 		})
 	}
 }
 
 func TestInterfaceMethod_Code(t *testing.T) {
+	type fields struct {
+		Name    string
+		docs    []Comment
+		Params  []Parameter
+		Results []Parameter
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		want   *jen.Statement
+	}{
+		{
+			name: "Should return the correct jen representation of an interface method",
+			fields: fields{
+				Name: "Test",
+			},
+			want: jen.Id("Test").Params(),
+		},
+		{
+			name: "Should return the correct jen representation of an interface method with parameters",
+			fields: fields{
+				Name: "Test",
+				Params: []Parameter{
+					*NewParameter("p", NewType("string")),
+				},
+			},
+			want: jen.Id("Test").Params(NewParameter("p", NewType("string")).Code()),
+		},
+		{
+			name: "Should return the correct jen representation of an interface method with results",
+			fields: fields{
+				Name: "Test",
+				Results: []Parameter{
+					*NewParameter("p", NewType("string")),
+				},
+			},
+			want: jen.Id("Test").Params().Params(NewParameter("p", NewType("string")).Code()),
+		},
+		{
+			name: "Should return the correct jen representation of an interface method with parameters and results",
+			fields: fields{
+				Name: "Test",
+				Params: []Parameter{
+					*NewParameter("p", NewType("string")),
+				},
+				Results: []Parameter{
+					*NewParameter("r", NewType("string")),
+				},
+			},
+			want: jen.Id("Test").Params(NewParameter("p", NewType("string")).Code()).Params(NewParameter("r", NewType("string")).Code()),
+		},
+		{
+			name: "Should return the correct jen representation of an interface method with parameters and results and docs",
+			fields: fields{
+				Name: "Test",
+				Params: []Parameter{
+					*NewParameter("p", NewType("string")),
+				},
+				Results: []Parameter{
+					*NewParameter("r", NewType("string")),
+				},
+				docs: []Comment{"Test", "Hi"},
+			},
+			want: jen.Add(jen.Comment("Test").Line(), jen.Comment("Hi").Line()).Id("Test").Params(NewParameter("p", NewType("string")).Code()).Params(NewParameter("r", NewType("string")).Code()),
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			m := &InterfaceMethod{
+				Name:    tt.fields.Name,
+				docs:    tt.fields.docs,
+				Params:  tt.fields.Params,
+				Results: tt.fields.Results,
+			}
+			if got := m.Code(); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("InterfaceMethod.Code() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestInterfaceMethod_String(t *testing.T) {
 	type fields struct {
 		Name    string
 		docs    []Comment
@@ -2322,9 +2546,62 @@ func TestInterfaceMethod_Code(t *testing.T) {
 	tests := []struct {
 		name   string
 		fields fields
-		want   *jen.Statement
+		want   string
 	}{
-		// TODO: Add test cases.
+		{
+			name: "Should return the correct jen representation of an interface method",
+			fields: fields{
+				Name: "Test",
+			},
+			want: "Test()",
+		},
+		{
+			name: "Should return the correct jen representation of an interface method with parameters",
+			fields: fields{
+				Name: "Test",
+				Params: []Parameter{
+					*NewParameter("p", NewType("string")),
+				},
+			},
+			want: "Test(p string)",
+		},
+		{
+			name: "Should return the correct jen representation of an interface method with results",
+			fields: fields{
+				Name: "Test",
+				Results: []Parameter{
+					*NewParameter("p", NewType("string")),
+				},
+			},
+			want: "Test() (p string)",
+		},
+		{
+			name: "Should return the correct jen representation of an interface method with parameters and results",
+			fields: fields{
+				Name: "Test",
+				Params: []Parameter{
+					*NewParameter("p", NewType("string")),
+				},
+				Results: []Parameter{
+					*NewParameter("r", NewType("string")),
+				},
+			},
+			want: "Test(p string) (r string)",
+		},
+		{
+			name: "Should return the correct jen representation of an interface method with parameters and results and docs",
+			fields: fields{
+				Name: "Test",
+				Params: []Parameter{
+					*NewParameter("p", NewType("string")),
+				},
+				Results: []Parameter{
+					*NewParameter("r", NewType("string")),
+				},
+				docs: []Comment{"Test", "Hi"},
+			},
+			want: "// Test\n// Hi\nTest(p string) (r string)",
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -2336,8 +2613,65 @@ func TestInterfaceMethod_Code(t *testing.T) {
 				Results: tt.fields.Results,
 				Body:    tt.fields.Body,
 			}
-			if got := m.Code(); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("InterfaceMethod.Code() = %v, want %v", got, tt.want)
+			if got := m.String(); got != tt.want {
+				t.Errorf("InterfaceMethod.String() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestInterfaceMethod_AddDocs(t *testing.T) {
+	type fields struct {
+		Name    string
+		docs    []Comment
+		Recv    *Parameter
+		Params  []Parameter
+		Results []Parameter
+		Body    []jen.Code
+	}
+	type args struct {
+		docs []Comment
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		args   args
+		want   []Comment
+	}{
+		{
+			name: "Should add the docs to the interface method",
+			fields: fields{
+				Name: "Test",
+			},
+			args: args{
+				docs: []Comment{"This is some docs", "This is some more docs"},
+			},
+			want: []Comment{"This is some docs", "This is some more docs"},
+		}, {
+			name: "Should add the docs to the variable with existing docs",
+			fields: fields{
+				Name: "Test",
+				docs: []Comment{"Some initial docs"},
+			},
+			args: args{
+				docs: []Comment{"This is some docs", "This is some more docs"},
+			},
+			want: []Comment{"Some initial docs", "This is some docs", "This is some more docs"},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			m := &InterfaceMethod{
+				Name:    tt.fields.Name,
+				docs:    tt.fields.docs,
+				Recv:    tt.fields.Recv,
+				Params:  tt.fields.Params,
+				Results: tt.fields.Results,
+				Body:    tt.fields.Body,
+			}
+			m.AddDocs(tt.args.docs...)
+			if !reflect.DeepEqual(m.docs, tt.want) {
+				t.Errorf("InterfaceMethod.docs = %v, want %v", m.docs, tt.want)
 			}
 		})
 	}
@@ -2348,16 +2682,43 @@ func TestFieldTags_Set(t *testing.T) {
 		key   string
 		value string
 	}
+	var tags FieldTags
 	tests := []struct {
 		name string
 		f    *FieldTags
 		args args
+		want *FieldTags
 	}{
-		// TODO: Add test cases.
+		{
+			name: "Should set the tag",
+			f:    NewFieldTags("test", "123"),
+			args: args{
+				key:   "other",
+				value: "value",
+			},
+			want: &FieldTags{
+				"test":  "123",
+				"other": "value",
+			},
+		},
+		{
+			name: "Should set the tag if tags nil",
+			f:    &tags,
+			args: args{
+				key:   "other",
+				value: "value",
+			},
+			want: &FieldTags{
+				"other": "value",
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			tt.f.Set(tt.args.key, tt.args.value)
+			if !reflect.DeepEqual(tt.f, tt.want) {
+				t.Errorf("FieldTags = %v, want %v", tt.f, tt.want)
+			}
 		})
 	}
 }
@@ -2374,7 +2735,7 @@ func Test_codeString(t *testing.T) {
 		{
 			name: "Should remove unnecessary tabs",
 			args: args{
-				c: NewStructWithFields("Hello", []StructField{NewStructField("s", NewType("string"))}),
+				c: NewStructWithFields("Hello", []StructField{*NewStructField("s", NewType("string"))}),
 			},
 			want: "type Hello struct {\n\ts string\n}",
 		},
@@ -2396,12 +2757,23 @@ func Test_addDocsCode(t *testing.T) {
 	tests := []struct {
 		name string
 		args args
+		want *jen.Statement
 	}{
-		// TODO: Add test cases.
+		{
+			name: "Should return add the correct jen representation of a comment list to the code",
+			args: args{
+				c:    &jen.Statement{},
+				docs: []Comment{"Test", "123"},
+			},
+			want: jen.Add(jen.Comment("Test").Line(), jen.Comment("123").Line()),
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			addDocsCode(tt.args.c, tt.args.docs)
+			if !reflect.DeepEqual(tt.args.c, tt.want) {
+				t.Errorf("Code = %v, want %v", tt.args.c, tt.want)
+			}
 		})
 	}
 }
@@ -2415,7 +2787,19 @@ func Test_paramsList(t *testing.T) {
 		args  args
 		wantL []jen.Code
 	}{
-		// TODO: Add test cases.
+		{
+			name: "Should return the jen representation of a parameter list",
+			args: args{
+				paramList: []Parameter{
+					*NewParameter("a", NewType("string")),
+					*NewParameter("b", NewType("int")),
+				},
+			},
+			wantL: []jen.Code{
+				NewParameter("a", NewType("string")).Code(),
+				NewParameter("b", NewType("int")).Code(),
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -2426,100 +2810,51 @@ func Test_paramsList(t *testing.T) {
 	}
 }
 
-func TestNewTypeMethod(t *testing.T) {
-	type args struct {
-		options []MethodOptions
-	}
-	tests := []struct {
-		name string
-		args args
-		want *MethodType
-	}{
-		// TODO: Add test cases.
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := NewMethodType(tt.args.options...); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("NewTypeMethod() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
-func TestTypeMethod_Code(t *testing.T) {
-	type fields struct {
-		Name    string
-		docs    []Comment
-		Params  []Parameter
-		Results []Parameter
-	}
-	tests := []struct {
-		name   string
-		fields fields
-		want   *jen.Statement
-	}{
-		// TODO: Add test cases.
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			m := &MethodType{
-				Name:    tt.fields.Name,
-				docs:    tt.fields.docs,
-				Params:  tt.fields.Params,
-				Results: tt.fields.Results,
-			}
-			if got := m.Code(); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("MethodType.Code() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
-func TestNewMethodType(t *testing.T) {
-	type args struct {
-		options []MethodOptions
-	}
-	tests := []struct {
-		name string
-		args args
-		want *MethodType
-	}{
-		// TODO: Add test cases.
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := NewMethodType(tt.args.options...); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("NewMethodType() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
 func TestMethodType_Code(t *testing.T) {
 	type fields struct {
-		Name    string
-		docs    []Comment
-		Recv    *Parameter
 		Params  []Parameter
 		Results []Parameter
-		Body    []jen.Code
 	}
 	tests := []struct {
 		name   string
 		fields fields
 		want   *jen.Statement
 	}{
-		// TODO: Add test cases.
+		{
+			name:   "Should return the correct jen representation of a method",
+			fields: fields{},
+			want:   jen.Func().Params(),
+		},
+		{
+			name: "Should return the correct jen representation of a method with parameters",
+			fields: fields{
+				Params: []Parameter{*NewParameter("t", NewType("hi"))},
+			},
+			want: jen.Func().Params(NewParameter("t", NewType("hi")).Code()),
+		},
+		{
+			name: "Should return the correct jen representation of a method with result",
+			fields: fields{
+				Results: []Parameter{*NewParameter("r", NewType("hi"))},
+			},
+			want: jen.Func().Params().Params(NewParameter("r", NewType("hi")).Code()),
+		},
+		{
+			name: "Should return the correct jen representation of a method with parameters and result",
+			fields: fields{
+				Params:  []Parameter{*NewParameter("t", NewType("hi"))},
+				Results: []Parameter{*NewParameter("r", NewType("hi"))},
+			},
+			want: jen.Func().Params(
+				NewParameter("t", NewType("hi")).Code(),
+			).Params(NewParameter("r", NewType("hi")).Code()),
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			m := &MethodType{
-				Name:    tt.fields.Name,
-				docs:    tt.fields.docs,
-				Recv:    tt.fields.Recv,
 				Params:  tt.fields.Params,
 				Results: tt.fields.Results,
-				Body:    tt.fields.Body,
 			}
 			if got := m.Code(); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("MethodType.Code() = %v, want %v", got, tt.want)
@@ -2530,29 +2865,47 @@ func TestMethodType_Code(t *testing.T) {
 
 func TestMethodType_String(t *testing.T) {
 	type fields struct {
-		Name    string
-		docs    []Comment
-		Recv    *Parameter
 		Params  []Parameter
 		Results []Parameter
-		Body    []jen.Code
 	}
 	tests := []struct {
 		name   string
 		fields fields
 		want   string
 	}{
-		// TODO: Add test cases.
+		{
+			name:   "Should return the correct jen representation of a method",
+			fields: fields{},
+			want:   "func()",
+		},
+		{
+			name: "Should return the correct jen representation of a method with parameters",
+			fields: fields{
+				Params: []Parameter{*NewParameter("t", NewType("hi"))},
+			},
+			want: "func(t hi)",
+		},
+		{
+			name: "Should return the correct jen representation of a method with result",
+			fields: fields{
+				Results: []Parameter{*NewParameter("r", NewType("hi"))},
+			},
+			want: "func() (r hi)",
+		},
+		{
+			name: "Should return the correct jen representation of a method with parameters and result",
+			fields: fields{
+				Params:  []Parameter{*NewParameter("t", NewType("hi"))},
+				Results: []Parameter{*NewParameter("r", NewType("hi"))},
+			},
+			want: "func(t hi) (r hi)",
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			m := &MethodType{
-				Name:    tt.fields.Name,
-				docs:    tt.fields.docs,
-				Recv:    tt.fields.Recv,
 				Params:  tt.fields.Params,
 				Results: tt.fields.Results,
-				Body:    tt.fields.Body,
 			}
 			if got := m.String(); got != tt.want {
 				t.Errorf("MethodType.String() = %v, want %v", got, tt.want)
@@ -2563,12 +2916,8 @@ func TestMethodType_String(t *testing.T) {
 
 func TestMethodType_AddDocs(t *testing.T) {
 	type fields struct {
-		Name    string
-		docs    []Comment
-		Recv    *Parameter
 		Params  []Parameter
 		Results []Parameter
-		Body    []jen.Code
 	}
 	type args struct {
 		docs []Comment
@@ -2578,17 +2927,15 @@ func TestMethodType_AddDocs(t *testing.T) {
 		fields fields
 		args   args
 	}{
-		// TODO: Add test cases.
+		{
+			name: "Should do nothing",
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			m := &MethodType{
-				Name:    tt.fields.Name,
-				docs:    tt.fields.docs,
-				Recv:    tt.fields.Recv,
 				Params:  tt.fields.Params,
 				Results: tt.fields.Results,
-				Body:    tt.fields.Body,
 			}
 			m.AddDocs(tt.args.docs...)
 		})
@@ -2616,6 +2963,189 @@ func Test_prepareLines(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := prepareLines(tt.args.s); got != tt.want {
 				t.Errorf("prepareLines() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestInterface_Code(t *testing.T) {
+	type fields struct {
+		docs    []Comment
+		Name    string
+		Methods []InterfaceMethod
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		want   *jen.Statement
+	}{
+		{
+			name: "Should return the correct jen representation of the interface",
+			fields: fields{
+				Name: "MyInterface",
+			},
+			want: jen.Type().Id("MyInterface").Interface(),
+		},
+		{
+			name: "Should return the correct jen representation of the interface with methods",
+			fields: fields{
+				Name: "MyInterface",
+				Methods: []InterfaceMethod{
+					NewInterfaceMethod("Test"),
+					NewInterfaceMethod("Test2"),
+				},
+			},
+			want: jen.Type().Id("MyInterface").Interface(
+				func() *jen.Statement {
+					im := NewInterfaceMethod("Test")
+					return im.Code()
+				}(),
+				func() *jen.Statement {
+					im := NewInterfaceMethod("Test2")
+					return im.Code()
+				}(),
+			),
+		},
+		{
+			name: "Should return the correct jen representation of the interface with methods",
+			fields: fields{
+				docs: []Comment{"Hello", "Hi"},
+				Name: "MyInterface",
+				Methods: []InterfaceMethod{
+					NewInterfaceMethod("Test"),
+					NewInterfaceMethod("Test2"),
+				},
+			},
+			want: jen.Add(jen.Comment("Hello").Line(), jen.Comment("Hi").Line()).Type().Id("MyInterface").Interface(
+				func() *jen.Statement {
+					im := NewInterfaceMethod("Test")
+					return im.Code()
+				}(),
+				func() *jen.Statement {
+					im := NewInterfaceMethod("Test2")
+					return im.Code()
+				}(),
+			),
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			i := &Interface{
+				docs:    tt.fields.docs,
+				Name:    tt.fields.Name,
+				Methods: tt.fields.Methods,
+			}
+			if got := i.Code(); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("Interface.Code() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestInterface_String(t *testing.T) {
+	type fields struct {
+		docs    []Comment
+		Name    string
+		Methods []InterfaceMethod
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		want   string
+	}{
+
+		{
+			name: "Should return the correct jen representation of the interface",
+			fields: fields{
+				Name: "MyInterface",
+			},
+			want: "type MyInterface interface{}",
+		},
+		{
+			name: "Should return the correct jen representation of the interface with methods",
+			fields: fields{
+				Name: "MyInterface",
+				Methods: []InterfaceMethod{
+					NewInterfaceMethod("Test"),
+					NewInterfaceMethod("Test2"),
+				},
+			},
+			want: "type MyInterface interface {\n\tTest()\n\tTest2()\n}",
+		},
+		{
+			name: "Should return the correct jen representation of the interface with methods",
+			fields: fields{
+				docs: []Comment{"Hello", "Hi"},
+				Name: "MyInterface",
+				Methods: []InterfaceMethod{
+					NewInterfaceMethod("Test"),
+					NewInterfaceMethod("Test2"),
+				},
+			},
+			want: "// Hello\n// Hi\ntype MyInterface interface {\n\tTest()\n\tTest2()\n}",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			i := &Interface{
+				docs:    tt.fields.docs,
+				Name:    tt.fields.Name,
+				Methods: tt.fields.Methods,
+			}
+			if got := i.String(); got != tt.want {
+				t.Errorf("Interface.String() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestInterface_AddDocs(t *testing.T) {
+	type fields struct {
+		docs    []Comment
+		Name    string
+		Methods []InterfaceMethod
+	}
+	type args struct {
+		docs []Comment
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		args   args
+		want   []Comment
+	}{
+		{
+			name: "Should add the docs to the interface",
+			fields: fields{
+				Name: "Test",
+			},
+			args: args{
+				docs: []Comment{"This is some docs", "This is some more docs"},
+			},
+			want: []Comment{"This is some docs", "This is some more docs"},
+		}, {
+			name: "Should add the docs to the interface with existing docs",
+			fields: fields{
+				Name: "Test",
+				docs: []Comment{"Some initial docs"},
+			},
+			args: args{
+				docs: []Comment{"This is some docs", "This is some more docs"},
+			},
+			want: []Comment{"Some initial docs", "This is some docs", "This is some more docs"},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			i := &Interface{
+				docs:    tt.fields.docs,
+				Name:    tt.fields.Name,
+				Methods: tt.fields.Methods,
+			}
+			i.AddDocs(tt.args.docs...)
+
+			if !reflect.DeepEqual(i.docs, tt.want) {
+				t.Errorf("Interface.docs = %v, want %v", i.docs, tt.want)
 			}
 		})
 	}
