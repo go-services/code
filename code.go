@@ -5,58 +5,138 @@ import (
 	"strings"
 )
 
-// Code is the interface that all code nodes need to implement
+// Code is the interface that all code nodes need to implement.
 type Code interface {
+
+	// String returns the string representation of the code.
 	String() string
+
+	// Code returns the jen representation of the code.
 	Code() *jen.Statement
+
+	// AddDocs adds documentation comments to the code.
 	AddDocs(docs ...Comment)
 }
 
+// Import represents an import
+// this is mostly used for parameters and field types so we know what the package
+// of the type is.
 type Import struct {
+
+	// FilePath is the path of the package. (e.x /User/Kujtim/go/src/github.com/go-services/code).
 	FilePath string
-	Alias    string
-	Path     string
+
+	// Alias is the alias of the import (e.x import my_alias "fmt").
+	Alias string
+
+	// Path is the path of the import (e.x import "github.com/go-services/code").
+	Path string
 }
+
+// Comment represents a code comment, it implements the Code interface.
 type Comment string
 
+// TypeOptions is used when you call NewType, it is a handy way to allow multiple configurations
+// for a type.
+//   tp:= NewType("string", PointerTypeOption())
+// This would give you a type of pointer string.
+// You can use many build in type option functions like:
+//
+// 	- ImportTypeOption(i *Import) TypeOptions
+// 	- MethodTypeOption(m *MethodType) TypeOptions
+// 	- PointerTypeOption() TypeOptions
 type TypeOptions func(t *Type)
 
+// MethodType is used in Type to specify a method type (e.x func(sting) int).
 type MethodType Method
 
+// Type represents a type e.x `string`, `context.Context`...
+// the type is represented by 2 main parameters.
+//
+//	1) The Import  e.x `context`
+//
+//		Import = &Import {
+//			Path: "context"
+//		}
+//
+//	2) The Qualifier e.x `Context`
+// 		Qualifier = "Context"
+// this would give you the representation of `context.Context`.
 type Type struct {
+
+	// Import specifies the import of the type, it is used so we know how to call jen.Qual.
+	// e.x if you want to specify the type to be `context.Context`.
+	// the Import would be
+	//   Import{
+	//		Path:"context"
+	// 	}
+	// and the Qualifier = Context
 	Import *Import
 
-	// this is for method type types. e.x  func(string) string
-	Method    *MethodType
-	Pointer   bool
+	// MethodType is used in Type to specify a method type (e.x func(sting) int)
+	// if method is set all other type parameters besides the pointer are ignored.
+	Method *MethodType
+
+	// Pointer tells if the type is a pointer.
+	Pointer bool
+
+	// Qualifier specifies the qualifier, for simple types like `string` it is the only
+	// parameter set on the type.
 	Qualifier string
 }
 
+// Var represents a variable.
 type Var struct {
-	docs  []Comment
-	Name  string
-	Type  Type
+	// docs stores all the documentation comments of the variable
+	docs []Comment
+
+	// Name is the name of the variable (e.x var {name} string)
+	Name string
+
+	// Type is the type of the variable.
+	Type Type
+
+	// The value of the variable (e.x 2, 2.9, "Some string").
+	// currently only supports literal values, the plan is to expend this.
 	Value interface{}
 }
 
+// Const represents a constant, it has the same attributes as the variable only that
+// it assumes that the value is always set (there can not be any constant without initial value).
 type Const Var
 
+// Parameter represents a parameter, it is used in function parameters, function return parameters.
 type Parameter struct {
 	Name string
 	Type Type
 }
 
+// FieldTags represent the structure field tags (e.x `json:"test"`).
 type FieldTags map[string]string
 
+// StructField represent a structure field, it uses the parameter representation to represent the name and the type
+// the difference between parameter and struct field is that struct fields can have docs and tags.
 type StructField struct {
-	docs []Comment
+
+	// Parameter is used for representing the name and type because the go code is the same.
 	Parameter
+
+	// docs are the documentation comments of the struct field.
+	docs []Comment
+
+	// Tags represent the field tags.
 	Tags *FieldTags
 }
 
+// Struct represent a structure.
 type Struct struct {
-	docs   []Comment
-	Name   string
+	// docs are the documentation comments of the struct field.
+	docs []Comment
+
+	// Name represents the name of the structure.
+	Name string
+
+	// Fields represents the structure fields.
 	Fields []StructField
 }
 
