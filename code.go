@@ -7,7 +7,6 @@ import (
 
 // Code is the interface that all code nodes need to implement.
 type Code interface {
-
 	// String returns the string representation of the code.
 	String() string
 
@@ -22,7 +21,6 @@ type Code interface {
 // this is mostly used for parameters and field types so we know what the package
 // of the type is.
 type Import struct {
-
 	// FilePath is the path of the package. (e.x /User/Kujtim/go/src/github.com/go-services/code).
 	FilePath string
 
@@ -43,12 +41,12 @@ type Comment string
 // You can use many build in type option functions like:
 //
 // 	- ImportTypeOption(i *Import) TypeOptions
-// 	- MethodTypeOption(m *MethodType) TypeOptions
+// 	- FunctionTypeOption(m *FunctionType) TypeOptions
 // 	- PointerTypeOption() TypeOptions
 type TypeOptions func(t *Type)
 
-// MethodType is used in Type to specify a method type (e.x func(sting) int).
-type MethodType Method
+// FunctionType is used in Type to specify a method type (e.x func(sting) int).
+type FunctionType Function
 
 // Type represents a type e.x `string`, `context.Context`...
 // the type is represented by 2 main parameters.
@@ -63,7 +61,6 @@ type MethodType Method
 // 		Qualifier = "Context"
 // this would give you the representation of `context.Context`.
 type Type struct {
-
 	// Import specifies the import of the type, it is used so we know how to call jen.Qual.
 	// e.x if you want to specify the type to be `context.Context`.
 	// the Import would be
@@ -73,9 +70,9 @@ type Type struct {
 	// and the Qualifier = Context
 	Import *Import
 
-	// MethodType is used in Type to specify a method type (e.x func(sting) int)
+	// Function is used in Type to specify a method type (e.x func(sting) int)
 	// if method is set all other type parameters besides the pointer are ignored.
-	Method *MethodType
+	Function *FunctionType
 
 	// Pointer tells if the type is a pointer.
 	Pointer bool
@@ -87,9 +84,6 @@ type Type struct {
 
 // Var represents a variable.
 type Var struct {
-	// docs stores all the documentation comments of the variable
-	docs []Comment
-
 	// Name is the name of the variable (e.x var {name} string)
 	Name string
 
@@ -99,6 +93,9 @@ type Var struct {
 	// The value of the variable (e.x 2, 2.9, "Some string").
 	// currently only supports literal values, the plan is to expend this.
 	Value interface{}
+
+	// docs stores all the documentation comments of the variable
+	docs []Comment
 }
 
 // Const represents a constant, it has the same attributes as the variable only that
@@ -117,15 +114,14 @@ type FieldTags map[string]string
 // StructField represent a structure field, it uses the parameter representation to represent the name and the type
 // the difference between parameter and struct field is that struct fields can have docs and tags.
 type StructField struct {
-
 	// Parameter is used for representing the name and type because the go code is the same.
 	Parameter
 
-	// docs are the documentation comments of the struct field.
-	docs []Comment
-
 	// Tags represent the field tags.
 	Tags *FieldTags
+
+	// docs are the documentation comments of the struct field.
+	docs []Comment
 }
 
 // Struct represent a structure.
@@ -140,30 +136,53 @@ type Struct struct {
 	Fields []StructField
 }
 
-type MethodOptions func(m *Method)
+// FunctionOptions is used when you call NewFunction, it is a handy way to allow multiple configurations
+// for a function.
+//
+// Code has some preconfigured option functions you can use to add parameter, results, receiver, body, docs to the function.
+type FunctionOptions func(m *Function)
 
-type Method struct {
+// Function represents a function.
+type Function struct {
+	// Name is the name of the function.
 	Name string
 
-	docs []Comment
-
+	// Recv is the receiver of the function (e.x func (rcv *MyStruct) name() {}).
 	Recv *Parameter
 
+	// Params are the functions parameters.
 	Params []Parameter
 
+	// Results are the functions results.
 	Results []Parameter
 
+	// Body is the function body.
 	Body []jen.Code
+
+	// docs are the function documentation comments.
+	docs []Comment
 }
 
-type InterfaceMethod Method
+// InterfaceMethod is the representation of interface methods (e.x String() string).
+type InterfaceMethod Function
 
+// Interface is the representation of an interface.
 type Interface struct {
-	docs    []Comment
-	Name    string
+	// Name is the name of the interface.
+	Name string
+
+	// Methods are the interface methods, the interface can also have no methods.
 	Methods []InterfaceMethod
+
+	// docs are the interface documentation coments.
+	docs []Comment
 }
 
+// NewImport creates a new Import with the given alias and path.
+//
+// alias is the alias you want to give a package (e.x import my_alias "fmt")
+
+// path  is the import path (e.x "github.com/go-services/code")
 func NewImport(alias, path string) *Import {
 	return &Import{
 		Alias: alias,
@@ -171,34 +190,49 @@ func NewImport(alias, path string) *Import {
 	}
 }
 
+// NewImportWithFilePath creates a new Import with the given alias and path and filepath.
+//
+// filePath is the path in the filesystem of the source code.
 func NewImportWithFilePath(alias, path, filePath string) *Import {
 	imp := NewImport(alias, path)
 	imp.FilePath = filePath
 	return imp
 }
 
+// NewComment creates a Comment with the given string.
 func NewComment(s string) Comment {
 	return Comment(s)
 }
 
+// ImportTypeOption adds the given import to the type.
 func ImportTypeOption(i *Import) TypeOptions {
 	return func(t *Type) {
 		t.Import = i
 	}
 }
 
-func MethodTypeOption(m *MethodType) TypeOptions {
+// FunctionTypeOption adds the given function type to the type.
+func FunctionTypeOption(m *FunctionType) TypeOptions {
 	return func(t *Type) {
-		t.Method = m
+		t.Function = m
 	}
 }
 
+// PointerTypeOption marks the type as a pointer type.
 func PointerTypeOption() TypeOptions {
 	return func(t *Type) {
 		t.Pointer = true
 	}
 }
 
+// NewType creates the type with the qualifier and options given.
+//
+// Options are used so we can create a simple type like `string` and complex types
+//
+// Code has some build in type options that can be used
+//	- ImportTypeOption(i *Import) TypeOptions
+//	- FunctionTypeOption(m *FunctionType) TypeOptions
+//	- PointerTypeOption() TypeOptions
 func NewType(qualifier string, options ...TypeOptions) Type {
 	tp := Type{
 		Qualifier: qualifier,
@@ -209,6 +243,8 @@ func NewType(qualifier string, options ...TypeOptions) Type {
 	return tp
 }
 
+// NewVar creates a new var with the given name and type,
+// there is also an optional list of documentation comments that you can add to the variable
 func NewVar(name string, tp Type, docs ...Comment) *Var {
 	return &Var{
 		Name: name,
@@ -217,12 +253,14 @@ func NewVar(name string, tp Type, docs ...Comment) *Var {
 	}
 }
 
+// NewVar creates a new var with the given name type and value.
 func NewVarWithValue(name string, tp Type, value interface{}, docs ...Comment) *Var {
 	v := NewVar(name, tp, docs...)
 	v.Value = value
 	return v
 }
 
+// NewConst creates a new constant with the given name type and value.
 func NewConst(name string, tp Type, value interface{}, docs ...Comment) *Const {
 	v := NewVar(name, tp, docs...)
 	v.Value = value
@@ -230,17 +268,24 @@ func NewConst(name string, tp Type, value interface{}, docs ...Comment) *Const {
 	return &c
 }
 
+// NewParameter creates a new parameter with the given name and type.
 func NewParameter(name string, tp Type) *Parameter {
 	return &Parameter{
 		Name: name,
 		Type: tp,
 	}
 }
+
+// NewFieldTags creates a new field tags map with initial key and value.
+// there is also an optional list of documentation comments that you can add to the variable
 func NewFieldTags(key, value string) *FieldTags {
 	return &FieldTags{
 		key: value,
 	}
 }
+
+// NewStructField creates a new structure field with the given name and type,
+// there is also an optional list of documentation comments that you can add to the variable
 func NewStructField(name string, tp Type, docs ...Comment) *StructField {
 	pr := &Parameter{
 		Name: name,
@@ -251,12 +296,17 @@ func NewStructField(name string, tp Type, docs ...Comment) *StructField {
 		Parameter: *pr,
 	}
 }
+
+// NewStructFieldWithTag creates a new structure field with the given name type and tags,
+// there is also an optional list of documentation comments that you can add to the variable
 func NewStructFieldWithTag(name string, tp Type, tags *FieldTags, docs ...Comment) *StructField {
 	sf := NewStructField(name, tp, docs...)
 	sf.Tags = tags
 	return sf
 }
 
+// NewStruct creates a new structure with the given name,
+// there is also an optional list of documentation comments that you can add to the variable
 func NewStruct(name string, docs ...Comment) *Struct {
 	return &Struct{
 		Name: name,
@@ -264,59 +314,78 @@ func NewStruct(name string, docs ...Comment) *Struct {
 	}
 }
 
+// NewStructWithFields creates a new structure with the given name and fields,
+// there is also an optional list of documentation comments that you can add to the variable
 func NewStructWithFields(name string, fields []StructField, docs ...Comment) *Struct {
 	st := NewStruct(name, docs...)
 	st.Fields = fields
 	return st
 }
-func ParamsMethodOption(params ...Parameter) MethodOptions {
-	return func(m *Method) {
-		m.Params = params
+
+// ParamsFunctionOption adds given parameters to the function.
+func ParamsFunctionOption(params ...Parameter) FunctionOptions {
+	return func(f *Function) {
+		f.Params = params
 	}
 }
-func ResultsMethodOption(results ...Parameter) MethodOptions {
-	return func(m *Method) {
-		m.Results = results
+
+// ResultsFunctionOption adds given results to the function.
+func ResultsFunctionOption(results ...Parameter) FunctionOptions {
+	return func(f *Function) {
+		f.Results = results
 	}
 }
-func RecvMethodOption(recv *Parameter) MethodOptions {
-	return func(m *Method) {
-		m.Recv = recv
+
+// RecvFunctionOption sets the function receiver.
+func RecvFunctionOption(recv *Parameter) FunctionOptions {
+	return func(f *Function) {
+		f.Recv = recv
 	}
 }
-func BodyMethodOption(body ...jen.Code) MethodOptions {
-	return func(m *Method) {
-		m.Body = body
+
+// BodyFunctionOption adds given body code to the function.
+func BodyFunctionOption(body ...jen.Code) FunctionOptions {
+	return func(f *Function) {
+		f.Body = body
 	}
 }
-func DocsMethodOption(docs ...Comment) MethodOptions {
-	return func(m *Method) {
-		m.docs = docs
+
+// DocsFunctionOption adds given docs to the function.
+func DocsFunctionOption(docs ...Comment) FunctionOptions {
+	return func(f *Function) {
+		f.docs = docs
 	}
 }
-func NewMethod(name string, options ...MethodOptions) *Method {
-	m := &Method{
+
+// NewFunction creates a new function with the given name and options.
+func NewFunction(name string, options ...FunctionOptions) *Function {
+	f := &Function{
 		Name: name,
 	}
 	for _, o := range options {
-		o(m)
+		o(f)
 	}
-	return m
+	return f
 }
 
-func NewMethodType(options ...MethodOptions) *MethodType {
-	m := &Method{}
+// NewFunctionType creates a new function type with the given options.
+func NewFunctionType(options ...FunctionOptions) *FunctionType {
+	m := &Function{}
 	for _, o := range options {
 		o(m)
 	}
-	mt := MethodType(*m)
+	mt := FunctionType(*m)
 	return &mt
 }
-func NewInterfaceMethod(name string, options ...MethodOptions) InterfaceMethod {
-	m := NewMethod(name, options...)
+
+// NewInterfaceMethod creates a new interface method with the given name and options.
+func NewInterfaceMethod(name string, options ...FunctionOptions) InterfaceMethod {
+	m := NewFunction(name, options...)
 	return InterfaceMethod(*m)
 }
 
+// NewInterface creates a new interface with the given name and methods,
+// there is also an optional list of documentation comments that you can add to the variable
 func NewInterface(name string, methods []InterfaceMethod, docs ...Comment) *Interface {
 	return &Interface{
 		Name:    name,
@@ -324,23 +393,29 @@ func NewInterface(name string, methods []InterfaceMethod, docs ...Comment) *Inte
 		docs:    docs,
 	}
 }
+
+// Code returns the jen representation of the comment.
 func (c Comment) Code() *jen.Statement {
 	return jen.Comment(string(c))
 }
+
+// String returns the go code string of the comment.
 func (c Comment) String() string {
 	return codeString(&c)
 }
-func (c Comment) AddDocs(docs ...Comment) {
-	return
-}
 
+// AddDocs does nothing for the comment code.
+// We only implement this so we implement the Code interface.
+func (c Comment) AddDocs(docs ...Comment) { return }
+
+// Code returns the jen representation of the the type.
 func (t Type) Code() *jen.Statement {
 	code := &jen.Statement{}
 	if t.Pointer {
 		code.Id("*")
 	}
-	if t.Method != nil {
-		code.Add(t.Method.Code())
+	if t.Function != nil {
+		code.Add(t.Function.Code())
 		return code
 	}
 	if t.Import != nil {
@@ -349,9 +424,12 @@ func (t Type) Code() *jen.Statement {
 	}
 	return code.Id(t.Qualifier)
 }
+
+// String returns the go code string of the type,
+// if the type is a function type the function string tis used.
 func (t Type) String() string {
-	if t.Method != nil {
-		s := t.Method.String()
+	if t.Function != nil {
+		s := t.Function.String()
 		if t.Pointer {
 			s = "*" + s
 		}
@@ -359,10 +437,12 @@ func (t Type) String() string {
 	}
 	return codeString(t)
 }
-func (t Type) AddDocs(docs ...Comment) {
-	return
-}
 
+// AddDocs does nothing for the type code.
+// We only implement this so we implement the Code interface.
+func (t Type) AddDocs(docs ...Comment) { return }
+
+// Code returns the jen representation of the variable.
 func (v *Var) Code() *jen.Statement {
 	code := &jen.Statement{}
 	addDocsCode(code, v.docs)
@@ -373,16 +453,19 @@ func (v *Var) Code() *jen.Statement {
 	return code
 }
 
+// String returns the go code string of the variable.
 func (v *Var) String() string {
 	return codeString(v)
 }
 
+// AddDocs adds a list of documentation strings to the variable.
 func (v *Var) AddDocs(docs ...Comment) {
 	if docs != nil {
 		v.docs = append(v.docs, docs...)
 	}
 }
 
+// Code returns the jen representation of the constant.
 func (c *Const) Code() *jen.Statement {
 	code := &jen.Statement{}
 	addDocsCode(code, c.docs)
@@ -392,13 +475,18 @@ func (c *Const) Code() *jen.Statement {
 	}
 	return code
 }
+
+// String returns the go code string of the constant.
 func (c *Const) String() string {
 	return codeString(c)
 }
+
+// AddDocs adds a list of documentation strings to the constant.
 func (c *Const) AddDocs(docs ...Comment) {
 	c.docs = append(c.docs, docs...)
 }
 
+// Code returns the jen representation of the parameter.
 func (p *Parameter) Code() *jen.Statement {
 	c := &jen.Statement{}
 	if p.Name != "" {
@@ -407,6 +495,9 @@ func (p *Parameter) Code() *jen.Statement {
 	return c.Add(p.Type.Code())
 }
 
+// String returns the go code string of the parameter.
+// because the renderer does not render only parameters we create a dummy function to add the parameters to
+// than we remove everything besides the parameters.
 func (p *Parameter) String() string {
 	// Hack to get the reader to not throw errors in creating string representative of parameters
 	code := jen.Func().Id("_").Params(p.Code()).Block()
@@ -417,11 +508,14 @@ func (p *Parameter) String() string {
 	return s
 }
 
+// AddDocs does nothing for the parameter code.
+// We only implement this so we implement the Code interface.
 func (p *Parameter) AddDocs(docs ...Comment) {
 	return
 }
 
-func (m *MethodType) Code() *jen.Statement {
+// Code returns the jen representation of the function type.
+func (m *FunctionType) Code() *jen.Statement {
 	code := &jen.Statement{}
 	code.Func()
 	code.Params(paramsList(m.Params)...)
@@ -430,7 +524,11 @@ func (m *MethodType) Code() *jen.Statement {
 	}
 	return code
 }
-func (m *MethodType) String() string {
+
+// String returns the go code string of the function type.
+// because the renderer does not render only function types we create a dummy structure to add the function type field to
+// than we remove everything besides the function type.
+func (m *FunctionType) String() string {
 	code := m.Code()
 	// Hack to get the reader to not throw errors in function types
 	fakeStruct := jen.Type().Id("_").Struct(jen.Id("_").Add(code))
@@ -440,11 +538,13 @@ func (m *MethodType) String() string {
 	// -----
 	return s
 }
-func (m *MethodType) AddDocs(docs ...Comment) {
-	return
-}
 
-func (m *Method) Code() *jen.Statement {
+// AddDocs does nothing for the function type code.
+// We only implement this so we implement the Code interface.
+func (m *FunctionType) AddDocs(docs ...Comment) { return }
+
+// Code returns the jen representation of the function.
+func (m *Function) Code() *jen.Statement {
 	code := &jen.Statement{}
 	addDocsCode(code, m.docs)
 	code.Func()
@@ -459,18 +559,22 @@ func (m *Method) Code() *jen.Statement {
 	return code.Block(m.Body...)
 }
 
-func (m *Method) AddDocs(docs ...Comment) {
+// AddDocs adds a list of documentation strings to the function.
+func (m *Function) AddDocs(docs ...Comment) {
 	m.docs = append(m.docs, docs...)
 }
 
-func (m *Method) String() string {
+// String returns the go code string of the function.
+func (m *Function) String() string {
 	return codeString(m)
 }
 
-func (m *Method) AddStringBody(s string) {
+// AddStringBody adds raw string code to the body of the function.
+func (m *Function) AddStringBody(s string) {
 	m.Body = append(m.Body, jen.Id(s))
 }
 
+// Code returns the jen representation of the structure field.
 func (s *StructField) Code() *jen.Statement {
 	code := &jen.Statement{}
 	addDocsCode(code, s.docs)
@@ -480,6 +584,7 @@ func (s *StructField) Code() *jen.Statement {
 	}
 	return code
 }
+
 func (s *StructField) String() string {
 	code := s.Code()
 	// Hack to get the reader to not throw errors in struct fields

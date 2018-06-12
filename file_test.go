@@ -174,7 +174,7 @@ func TestFile_String(t *testing.T) {
 				pkg: "awesome_package",
 				Code: []Code{
 					NewInterface("SomeInterface", nil),
-					NewMethod("MyMethod", BodyMethodOption(jen.Qual("fmt", "Println").Call(jen.Lit("Hello World")))),
+					NewFunction("MyMethod", BodyFunctionOption(jen.Qual("fmt", "Println").Call(jen.Lit("Hello World")))),
 				},
 				jenFile: jen.NewFile("awesome_package"),
 			},
@@ -186,7 +186,7 @@ func TestFile_String(t *testing.T) {
 				pkg: "awesome_package",
 				Code: []Code{
 					NewInterface("SomeInterface", nil),
-					NewMethod("MyMethod", BodyMethodOption(jen.Qual("fmt", "Println").Call(jen.Lit("Hello World")))),
+					NewFunction("MyMethod", BodyFunctionOption(jen.Qual("fmt", "Println").Call(jen.Lit("Hello World")))),
 				},
 				jenFile: jen.NewFile("awesome_package"),
 			},
@@ -242,11 +242,11 @@ func TestFile_AppendAfter(t *testing.T) {
 			},
 			args: args{
 				c:   inf,
-				new: NewMethod("MyMethod", BodyMethodOption(jen.Qual("fmt", "Println").Call(jen.Lit("Hello World")))),
+				new: NewFunction("MyMethod", BodyFunctionOption(jen.Qual("fmt", "Println").Call(jen.Lit("Hello World")))),
 			},
 			want: []Code{
 				inf,
-				NewMethod("MyMethod", BodyMethodOption(jen.Qual("fmt", "Println").Call(jen.Lit("Hello World")))),
+				NewFunction("MyMethod", BodyFunctionOption(jen.Qual("fmt", "Println").Call(jen.Lit("Hello World")))),
 			},
 		},
 		{
@@ -254,21 +254,21 @@ func TestFile_AppendAfter(t *testing.T) {
 			fields: fields{
 				pkg: "awesome_package",
 				Code: []Code{
-					NewMethod("MyMethod1", BodyMethodOption(jen.Qual("fmt", "Println").Call(jen.Lit("Hello World")))),
+					NewFunction("MyMethod1", BodyFunctionOption(jen.Qual("fmt", "Println").Call(jen.Lit("Hello World")))),
 					inf,
-					NewMethod("MyMethod2", BodyMethodOption(jen.Qual("fmt", "Println").Call(jen.Lit("Hello World")))),
+					NewFunction("MyMethod2", BodyFunctionOption(jen.Qual("fmt", "Println").Call(jen.Lit("Hello World")))),
 				},
 				jenFile: jen.NewFile("awesome_package"),
 			},
 			args: args{
 				c:   inf,
-				new: NewMethod("MyMethod", BodyMethodOption(jen.Qual("fmt", "Println").Call(jen.Lit("Hello World")))),
+				new: NewFunction("MyMethod", BodyFunctionOption(jen.Qual("fmt", "Println").Call(jen.Lit("Hello World")))),
 			},
 			want: []Code{
-				NewMethod("MyMethod1", BodyMethodOption(jen.Qual("fmt", "Println").Call(jen.Lit("Hello World")))),
+				NewFunction("MyMethod1", BodyFunctionOption(jen.Qual("fmt", "Println").Call(jen.Lit("Hello World")))),
 				inf,
-				NewMethod("MyMethod", BodyMethodOption(jen.Qual("fmt", "Println").Call(jen.Lit("Hello World")))),
-				NewMethod("MyMethod2", BodyMethodOption(jen.Qual("fmt", "Println").Call(jen.Lit("Hello World")))),
+				NewFunction("MyMethod", BodyFunctionOption(jen.Qual("fmt", "Println").Call(jen.Lit("Hello World")))),
+				NewFunction("MyMethod2", BodyFunctionOption(jen.Qual("fmt", "Println").Call(jen.Lit("Hello World")))),
 			},
 		},
 		{
@@ -277,20 +277,20 @@ func TestFile_AppendAfter(t *testing.T) {
 				pkg: "awesome_package",
 				Code: []Code{
 					inf,
-					NewMethod("MyMethod1", BodyMethodOption(jen.Qual("fmt", "Println").Call(jen.Lit("Hello World")))),
-					NewMethod("MyMethod2", BodyMethodOption(jen.Qual("fmt", "Println").Call(jen.Lit("Hello World")))),
+					NewFunction("MyMethod1", BodyFunctionOption(jen.Qual("fmt", "Println").Call(jen.Lit("Hello World")))),
+					NewFunction("MyMethod2", BodyFunctionOption(jen.Qual("fmt", "Println").Call(jen.Lit("Hello World")))),
 				},
 				jenFile: jen.NewFile("awesome_package"),
 			},
 			args: args{
 				c:   inf,
-				new: NewMethod("MyMethod", BodyMethodOption(jen.Qual("fmt", "Println").Call(jen.Lit("Hello World")))),
+				new: NewFunction("MyMethod", BodyFunctionOption(jen.Qual("fmt", "Println").Call(jen.Lit("Hello World")))),
 			},
 			want: []Code{
 				inf,
-				NewMethod("MyMethod", BodyMethodOption(jen.Qual("fmt", "Println").Call(jen.Lit("Hello World")))),
-				NewMethod("MyMethod1", BodyMethodOption(jen.Qual("fmt", "Println").Call(jen.Lit("Hello World")))),
-				NewMethod("MyMethod2", BodyMethodOption(jen.Qual("fmt", "Println").Call(jen.Lit("Hello World")))),
+				NewFunction("MyMethod", BodyFunctionOption(jen.Qual("fmt", "Println").Call(jen.Lit("Hello World")))),
+				NewFunction("MyMethod1", BodyFunctionOption(jen.Qual("fmt", "Println").Call(jen.Lit("Hello World")))),
+				NewFunction("MyMethod2", BodyFunctionOption(jen.Qual("fmt", "Println").Call(jen.Lit("Hello World")))),
 			},
 		},
 		{
@@ -298,21 +298,21 @@ func TestFile_AppendAfter(t *testing.T) {
 			fields: fields{
 				pkg: "awesome_package",
 				Code: []Code{
-					NewMethod("MyMethod1", BodyMethodOption(jen.Qual("fmt", "Println").Call(jen.Lit("Hello World")))),
-					NewMethod("MyMethod2", BodyMethodOption(jen.Qual("fmt", "Println").Call(jen.Lit("Hello World")))),
+					NewFunction("MyMethod1", BodyFunctionOption(jen.Qual("fmt", "Println").Call(jen.Lit("Hello World")))),
+					NewFunction("MyMethod2", BodyFunctionOption(jen.Qual("fmt", "Println").Call(jen.Lit("Hello World")))),
 					inf,
 				},
 				jenFile: jen.NewFile("awesome_package"),
 			},
 			args: args{
 				c:   inf,
-				new: NewMethod("MyMethod", BodyMethodOption(jen.Qual("fmt", "Println").Call(jen.Lit("Hello World")))),
+				new: NewFunction("MyMethod", BodyFunctionOption(jen.Qual("fmt", "Println").Call(jen.Lit("Hello World")))),
 			},
 			want: []Code{
-				NewMethod("MyMethod1", BodyMethodOption(jen.Qual("fmt", "Println").Call(jen.Lit("Hello World")))),
-				NewMethod("MyMethod2", BodyMethodOption(jen.Qual("fmt", "Println").Call(jen.Lit("Hello World")))),
+				NewFunction("MyMethod1", BodyFunctionOption(jen.Qual("fmt", "Println").Call(jen.Lit("Hello World")))),
+				NewFunction("MyMethod2", BodyFunctionOption(jen.Qual("fmt", "Println").Call(jen.Lit("Hello World")))),
 				inf,
-				NewMethod("MyMethod", BodyMethodOption(jen.Qual("fmt", "Println").Call(jen.Lit("Hello World")))),
+				NewFunction("MyMethod", BodyFunctionOption(jen.Qual("fmt", "Println").Call(jen.Lit("Hello World")))),
 			},
 		},
 		{
@@ -324,7 +324,7 @@ func TestFile_AppendAfter(t *testing.T) {
 			},
 			args: args{
 				c:   inf,
-				new: NewMethod("MyMethod", BodyMethodOption(jen.Qual("fmt", "Println").Call(jen.Lit("Hello World")))),
+				new: NewFunction("MyMethod", BodyFunctionOption(jen.Qual("fmt", "Println").Call(jen.Lit("Hello World")))),
 			},
 			want:    []Code{},
 			wantErr: true,
@@ -378,10 +378,10 @@ func TestFile_PrependBefore(t *testing.T) {
 			},
 			args: args{
 				c:   inf,
-				new: NewMethod("MyMethod", BodyMethodOption(jen.Qual("fmt", "Println").Call(jen.Lit("Hello World")))),
+				new: NewFunction("MyMethod", BodyFunctionOption(jen.Qual("fmt", "Println").Call(jen.Lit("Hello World")))),
 			},
 			want: []Code{
-				NewMethod("MyMethod", BodyMethodOption(jen.Qual("fmt", "Println").Call(jen.Lit("Hello World")))),
+				NewFunction("MyMethod", BodyFunctionOption(jen.Qual("fmt", "Println").Call(jen.Lit("Hello World")))),
 				inf,
 			},
 		},
@@ -390,20 +390,20 @@ func TestFile_PrependBefore(t *testing.T) {
 			fields: fields{
 				pkg: "awesome_package",
 				Code: []Code{
-					NewMethod("MyMethod1", BodyMethodOption(jen.Qual("fmt", "Println").Call(jen.Lit("Hello World")))),
-					NewMethod("MyMethod2", BodyMethodOption(jen.Qual("fmt", "Println").Call(jen.Lit("Hello World")))),
+					NewFunction("MyMethod1", BodyFunctionOption(jen.Qual("fmt", "Println").Call(jen.Lit("Hello World")))),
+					NewFunction("MyMethod2", BodyFunctionOption(jen.Qual("fmt", "Println").Call(jen.Lit("Hello World")))),
 					inf,
 				},
 				jenFile: jen.NewFile("awesome_package"),
 			},
 			args: args{
 				c:   inf,
-				new: NewMethod("MyMethod", BodyMethodOption(jen.Qual("fmt", "Println").Call(jen.Lit("Hello World")))),
+				new: NewFunction("MyMethod", BodyFunctionOption(jen.Qual("fmt", "Println").Call(jen.Lit("Hello World")))),
 			},
 			want: []Code{
-				NewMethod("MyMethod1", BodyMethodOption(jen.Qual("fmt", "Println").Call(jen.Lit("Hello World")))),
-				NewMethod("MyMethod2", BodyMethodOption(jen.Qual("fmt", "Println").Call(jen.Lit("Hello World")))),
-				NewMethod("MyMethod", BodyMethodOption(jen.Qual("fmt", "Println").Call(jen.Lit("Hello World")))),
+				NewFunction("MyMethod1", BodyFunctionOption(jen.Qual("fmt", "Println").Call(jen.Lit("Hello World")))),
+				NewFunction("MyMethod2", BodyFunctionOption(jen.Qual("fmt", "Println").Call(jen.Lit("Hello World")))),
+				NewFunction("MyMethod", BodyFunctionOption(jen.Qual("fmt", "Println").Call(jen.Lit("Hello World")))),
 				inf,
 			},
 		},
@@ -413,20 +413,20 @@ func TestFile_PrependBefore(t *testing.T) {
 				pkg: "awesome_package",
 				Code: []Code{
 					inf,
-					NewMethod("MyMethod1", BodyMethodOption(jen.Qual("fmt", "Println").Call(jen.Lit("Hello World")))),
-					NewMethod("MyMethod2", BodyMethodOption(jen.Qual("fmt", "Println").Call(jen.Lit("Hello World")))),
+					NewFunction("MyMethod1", BodyFunctionOption(jen.Qual("fmt", "Println").Call(jen.Lit("Hello World")))),
+					NewFunction("MyMethod2", BodyFunctionOption(jen.Qual("fmt", "Println").Call(jen.Lit("Hello World")))),
 				},
 				jenFile: jen.NewFile("awesome_package"),
 			},
 			args: args{
 				c:   inf,
-				new: NewMethod("MyMethod", BodyMethodOption(jen.Qual("fmt", "Println").Call(jen.Lit("Hello World")))),
+				new: NewFunction("MyMethod", BodyFunctionOption(jen.Qual("fmt", "Println").Call(jen.Lit("Hello World")))),
 			},
 			want: []Code{
-				NewMethod("MyMethod", BodyMethodOption(jen.Qual("fmt", "Println").Call(jen.Lit("Hello World")))),
+				NewFunction("MyMethod", BodyFunctionOption(jen.Qual("fmt", "Println").Call(jen.Lit("Hello World")))),
 				inf,
-				NewMethod("MyMethod1", BodyMethodOption(jen.Qual("fmt", "Println").Call(jen.Lit("Hello World")))),
-				NewMethod("MyMethod2", BodyMethodOption(jen.Qual("fmt", "Println").Call(jen.Lit("Hello World")))),
+				NewFunction("MyMethod1", BodyFunctionOption(jen.Qual("fmt", "Println").Call(jen.Lit("Hello World")))),
+				NewFunction("MyMethod2", BodyFunctionOption(jen.Qual("fmt", "Println").Call(jen.Lit("Hello World")))),
 			},
 		},
 		{
@@ -434,21 +434,21 @@ func TestFile_PrependBefore(t *testing.T) {
 			fields: fields{
 				pkg: "awesome_package",
 				Code: []Code{
-					NewMethod("MyMethod1", BodyMethodOption(jen.Qual("fmt", "Println").Call(jen.Lit("Hello World")))),
+					NewFunction("MyMethod1", BodyFunctionOption(jen.Qual("fmt", "Println").Call(jen.Lit("Hello World")))),
 					inf,
-					NewMethod("MyMethod2", BodyMethodOption(jen.Qual("fmt", "Println").Call(jen.Lit("Hello World")))),
+					NewFunction("MyMethod2", BodyFunctionOption(jen.Qual("fmt", "Println").Call(jen.Lit("Hello World")))),
 				},
 				jenFile: jen.NewFile("awesome_package"),
 			},
 			args: args{
 				c:   inf,
-				new: NewMethod("MyMethod", BodyMethodOption(jen.Qual("fmt", "Println").Call(jen.Lit("Hello World")))),
+				new: NewFunction("MyMethod", BodyFunctionOption(jen.Qual("fmt", "Println").Call(jen.Lit("Hello World")))),
 			},
 			want: []Code{
-				NewMethod("MyMethod1", BodyMethodOption(jen.Qual("fmt", "Println").Call(jen.Lit("Hello World")))),
-				NewMethod("MyMethod", BodyMethodOption(jen.Qual("fmt", "Println").Call(jen.Lit("Hello World")))),
+				NewFunction("MyMethod1", BodyFunctionOption(jen.Qual("fmt", "Println").Call(jen.Lit("Hello World")))),
+				NewFunction("MyMethod", BodyFunctionOption(jen.Qual("fmt", "Println").Call(jen.Lit("Hello World")))),
 				inf,
-				NewMethod("MyMethod2", BodyMethodOption(jen.Qual("fmt", "Println").Call(jen.Lit("Hello World")))),
+				NewFunction("MyMethod2", BodyFunctionOption(jen.Qual("fmt", "Println").Call(jen.Lit("Hello World")))),
 			},
 		},
 		{
@@ -460,7 +460,7 @@ func TestFile_PrependBefore(t *testing.T) {
 			},
 			args: args{
 				c:   inf,
-				new: NewMethod("MyMethod", BodyMethodOption(jen.Qual("fmt", "Println").Call(jen.Lit("Hello World")))),
+				new: NewFunction("MyMethod", BodyFunctionOption(jen.Qual("fmt", "Println").Call(jen.Lit("Hello World")))),
 			},
 			want:    []Code{},
 			wantErr: true,

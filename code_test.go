@@ -131,10 +131,10 @@ func TestImportTypeOption(t *testing.T) {
 	}
 }
 
-func TestMethodTypeOption(t *testing.T) {
+func TestFunctionTypeOption(t *testing.T) {
 	type args struct {
 		tp Type
-		m  *MethodType
+		m  *FunctionType
 	}
 	tests := []struct {
 		name string
@@ -142,20 +142,20 @@ func TestMethodTypeOption(t *testing.T) {
 		want Type
 	}{
 		{
-			name: "Should add the method to the type",
+			name: "Should add the function to the type",
 			args: args{
 				tp: NewType("Test"),
-				m:  NewMethodType(),
+				m:  NewFunctionType(),
 			},
 			want: Type{
 				Qualifier: "Test",
-				Method:    NewMethodType(),
+				Function:  NewFunctionType(),
 			},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := MethodTypeOption(tt.args.m)
+			got := FunctionTypeOption(tt.args.m)
 			got(&tt.args.tp)
 			if !reflect.DeepEqual(tt.args.tp, tt.want) {
 				t.Errorf("Type = %v, want %v", tt.args.tp, tt.want)
@@ -241,26 +241,26 @@ func TestNewType(t *testing.T) {
 
 func TestNewMethodType(t *testing.T) {
 	type args struct {
-		options []MethodOptions
+		options []FunctionOptions
 	}
 	tests := []struct {
 		name string
 		args args
-		want *MethodType
+		want *FunctionType
 	}{
 		{
-			name: "Should return a new method type",
-			want: &MethodType{},
+			name: "Should return a new function type",
+			want: &FunctionType{},
 		},
 		{
-			name: "Should return a new method type with options",
+			name: "Should return a new function type with options",
 			args: args{
-				options: []MethodOptions{
-					DocsMethodOption("Test", "Hello"),
-					RecvMethodOption(NewParameter("hi", NewType("string"))),
+				options: []FunctionOptions{
+					DocsFunctionOption("Test", "Hello"),
+					RecvFunctionOption(NewParameter("hi", NewType("string"))),
 				},
 			},
-			want: &MethodType{
+			want: &FunctionType{
 				docs: []Comment{"Test", "Hello"},
 				Recv: NewParameter("hi", NewType("string")),
 			},
@@ -268,8 +268,8 @@ func TestNewMethodType(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := NewMethodType(tt.args.options...); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("NewMethodType() = %v, want %v", got, tt.want)
+			if got := NewFunctionType(tt.args.options...); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("NewFunctionType() = %v, want %v", got, tt.want)
 			}
 		})
 	}
@@ -742,25 +742,25 @@ func TestNewStructWithFields(t *testing.T) {
 	}
 }
 
-func TestParamsMethodOption(t *testing.T) {
+func TestParamsFunctionOption(t *testing.T) {
 	type args struct {
 		params []Parameter
-		mth    *Method
+		mth    *Function
 	}
 	tests := []struct {
 		name string
 		args args
-		want *Method
+		want *Function
 	}{
 		{
-			name: "Should add parameters to method",
+			name: "Should add parameters to function",
 			args: args{
 				params: []Parameter{
 					*NewParameter("test", NewType("string")),
 				},
-				mth: NewMethod("Hi"),
+				mth: NewFunction("Hi"),
 			},
-			want: &Method{
+			want: &Function{
 				Name: "Hi",
 				Params: []Parameter{
 					*NewParameter("test", NewType("string")),
@@ -770,34 +770,34 @@ func TestParamsMethodOption(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := ParamsMethodOption(tt.args.params...)
+			got := ParamsFunctionOption(tt.args.params...)
 			got(tt.args.mth)
 			if !reflect.DeepEqual(tt.args.mth, tt.want) {
-				t.Errorf("Method = %v, want %v", tt.args.mth, tt.want)
+				t.Errorf("Function = %v, want %v", tt.args.mth, tt.want)
 			}
 		})
 	}
 }
 
-func TestResultsMethodOption(t *testing.T) {
+func TestResultsFunctionOption(t *testing.T) {
 	type args struct {
 		results []Parameter
-		mth     *Method
+		mth     *Function
 	}
 	tests := []struct {
 		name string
 		args args
-		want *Method
+		want *Function
 	}{
 		{
-			name: "Should add results to method",
+			name: "Should add results to function",
 			args: args{
 				results: []Parameter{
 					*NewParameter("test", NewType("string")),
 				},
-				mth: NewMethod("Hi"),
+				mth: NewFunction("Hi"),
 			},
-			want: &Method{
+			want: &Function{
 				Name: "Hi",
 				Results: []Parameter{
 					*NewParameter("test", NewType("string")),
@@ -807,32 +807,32 @@ func TestResultsMethodOption(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := ResultsMethodOption(tt.args.results...)
+			got := ResultsFunctionOption(tt.args.results...)
 			got(tt.args.mth)
 			if !reflect.DeepEqual(tt.args.mth, tt.want) {
-				t.Errorf("Method = %v, want %v", tt.args.mth, tt.want)
+				t.Errorf("Function = %v, want %v", tt.args.mth, tt.want)
 			}
 		})
 	}
 }
 
-func TestRecvMethodOption(t *testing.T) {
+func TestRecvFunctionOption(t *testing.T) {
 	type args struct {
 		recv *Parameter
-		mth  *Method
+		mth  *Function
 	}
 	tests := []struct {
 		name string
 		args args
-		want *Method
+		want *Function
 	}{
 		{
-			name: "Should add receiver to method",
+			name: "Should add receiver to function",
 			args: args{
 				recv: NewParameter("test", NewType("string")),
-				mth:  NewMethod("Hi"),
+				mth:  NewFunction("Hi"),
 			},
-			want: &Method{
+			want: &Function{
 				Name: "Hi",
 				Recv: NewParameter("test", NewType("string")),
 			},
@@ -840,34 +840,34 @@ func TestRecvMethodOption(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := RecvMethodOption(tt.args.recv)
+			got := RecvFunctionOption(tt.args.recv)
 			got(tt.args.mth)
 			if !reflect.DeepEqual(tt.args.mth, tt.want) {
-				t.Errorf("Method = %v, want %v", tt.args.mth, tt.want)
+				t.Errorf("Function = %v, want %v", tt.args.mth, tt.want)
 			}
 		})
 	}
 }
 
-func TestBodyMethodOption(t *testing.T) {
+func TestBodyFunctionOption(t *testing.T) {
 	type args struct {
 		body []jen.Code
-		mth  *Method
+		mth  *Function
 	}
 	tests := []struct {
 		name string
 		args args
-		want *Method
+		want *Function
 	}{
 		{
-			name: "Should add body to method",
+			name: "Should add body to function",
 			args: args{
 				body: []jen.Code{
 					jen.Id("print(\"hello\")"),
 				},
-				mth: NewMethod("Hi"),
+				mth: NewFunction("Hi"),
 			},
-			want: &Method{
+			want: &Function{
 				Name: "Hi",
 				Body: []jen.Code{
 					jen.Id("print(\"hello\")"),
@@ -877,32 +877,32 @@ func TestBodyMethodOption(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := BodyMethodOption(tt.args.body...)
+			got := BodyFunctionOption(tt.args.body...)
 			got(tt.args.mth)
 			if !reflect.DeepEqual(tt.args.mth, tt.want) {
-				t.Errorf("Method = %v, want %v", tt.args.mth, tt.want)
+				t.Errorf("Function = %v, want %v", tt.args.mth, tt.want)
 			}
 		})
 	}
 }
 
-func TestDocsMethodOption(t *testing.T) {
+func TestDocsFunctionOption(t *testing.T) {
 	type args struct {
 		docs []Comment
-		mth  *Method
+		mth  *Function
 	}
 	tests := []struct {
 		name string
 		args args
-		want *Method
+		want *Function
 	}{
 		{
-			name: "Should add parameters to method",
+			name: "Should add parameters to function",
 			args: args{
 				docs: []Comment{"Hello", "Hi"},
-				mth:  NewMethod("Hi"),
+				mth:  NewFunction("Hi"),
 			},
-			want: &Method{
+			want: &Function{
 				Name: "Hi",
 				docs: []Comment{"Hello", "Hi"},
 			},
@@ -910,44 +910,44 @@ func TestDocsMethodOption(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := DocsMethodOption(tt.args.docs...)
+			got := DocsFunctionOption(tt.args.docs...)
 			got(tt.args.mth)
 			if !reflect.DeepEqual(tt.args.mth, tt.want) {
-				t.Errorf("Method = %v, want %v", tt.args.mth, tt.want)
+				t.Errorf("Function = %v, want %v", tt.args.mth, tt.want)
 			}
 		})
 	}
 }
 
-func TestNewMethod(t *testing.T) {
+func TestNewFunction(t *testing.T) {
 	type args struct {
 		name    string
-		options []MethodOptions
+		options []FunctionOptions
 	}
 	tests := []struct {
 		name string
 		args args
-		want *Method
+		want *Function
 	}{
 		{
-			name: "Should return a new method",
+			name: "Should return a new function",
 			args: args{
 				name: "Test",
 			},
-			want: &Method{
+			want: &Function{
 				Name: "Test",
 			},
 		},
 		{
-			name: "Should return a new method with options",
+			name: "Should return a new function with options",
 			args: args{
 				name: "Test",
-				options: []MethodOptions{
-					DocsMethodOption("Test", "Hello"),
-					RecvMethodOption(NewParameter("hi", NewType("string"))),
+				options: []FunctionOptions{
+					DocsFunctionOption("Test", "Hello"),
+					RecvFunctionOption(NewParameter("hi", NewType("string"))),
 				},
 			},
-			want: &Method{
+			want: &Function{
 				Name: "Test",
 				docs: []Comment{"Test", "Hello"},
 				Recv: NewParameter("hi", NewType("string")),
@@ -956,8 +956,8 @@ func TestNewMethod(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := NewMethod(tt.args.name, tt.args.options...); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("NewMethod() = %v, want %v", got, tt.want)
+			if got := NewFunction(tt.args.name, tt.args.options...); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("NewFunction() = %v, want %v", got, tt.want)
 			}
 		})
 	}
@@ -966,7 +966,7 @@ func TestNewMethod(t *testing.T) {
 func TestNewInterfaceMethod(t *testing.T) {
 	type args struct {
 		name    string
-		options []MethodOptions
+		options []FunctionOptions
 	}
 	tests := []struct {
 		name string
@@ -986,9 +986,9 @@ func TestNewInterfaceMethod(t *testing.T) {
 			name: "Should return a new interface method with options",
 			args: args{
 				name: "Hi",
-				options: []MethodOptions{
-					DocsMethodOption("Test", "Hello"),
-					RecvMethodOption(NewParameter("hi", NewType("string"))),
+				options: []FunctionOptions{
+					DocsFunctionOption("Test", "Hello"),
+					RecvFunctionOption(NewParameter("hi", NewType("string"))),
 				},
 			},
 			want: InterfaceMethod{
@@ -1140,7 +1140,7 @@ func TestComment_AddDocs(t *testing.T) {
 func TestType_Code(t *testing.T) {
 	type fields struct {
 		Import    *Import
-		Method    *MethodType
+		Method    *FunctionType
 		Pointer   bool
 		Qualifier string
 	}
@@ -1187,17 +1187,17 @@ func TestType_Code(t *testing.T) {
 			want: jen.Id("*").Qual("test/test/test", "Test"),
 		},
 		{
-			name: "Should return the correct jen representation of the type if the type is method type",
+			name: "Should return the correct jen representation of the type if the type is function type",
 			fields: fields{
-				Method: NewMethodType(),
+				Method: NewFunctionType(),
 			},
 			want: jen.Add(jen.Func().Params()),
 		},
 		{
-			name: "Should return the correct jen representation of the type if the type is method type pointer",
+			name: "Should return the correct jen representation of the type if the type is function type pointer",
 			fields: fields{
 				Pointer: true,
-				Method:  NewMethodType(),
+				Method:  NewFunctionType(),
 			},
 			want: jen.Id("*").Add(jen.Func().Params()),
 		},
@@ -1206,7 +1206,7 @@ func TestType_Code(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			tp := &Type{
 				Import:    tt.fields.Import,
-				Method:    tt.fields.Method,
+				Function:  tt.fields.Method,
 				Pointer:   tt.fields.Pointer,
 				Qualifier: tt.fields.Qualifier,
 			}
@@ -1220,7 +1220,7 @@ func TestType_Code(t *testing.T) {
 func TestType_String(t *testing.T) {
 	type fields struct {
 		Import    *Import
-		Method    *MethodType
+		Function  *FunctionType
 		Pointer   bool
 		Qualifier string
 	}
@@ -1267,28 +1267,28 @@ func TestType_String(t *testing.T) {
 			want: "*test.Test",
 		},
 		{
-			name: "Should return the correct go source of the type if the type is method type",
+			name: "Should return the correct go source of the type if the type is function type",
 			fields: fields{
-				Method: NewMethodType(),
+				Function: NewFunctionType(),
 			},
 			want: "func()",
 		},
 		{
-			name: "Should return the correct go source of the type if the type is method type pointer",
+			name: "Should return the correct go source of the type if the type is function type pointer",
 			fields: fields{
-				Pointer: true,
-				Method:  NewMethodType(),
+				Pointer:  true,
+				Function: NewFunctionType(),
 			},
 			want: "*func()",
 		},
 		{
-			name: "Should return the correct go source of the type if the type is method type with parameters",
+			name: "Should return the correct go source of the type if the type is function type with parameters",
 			fields: fields{
-				Method: NewMethodType(
-					ParamsMethodOption(
+				Function: NewFunctionType(
+					ParamsFunctionOption(
 						*NewParameter("a", NewType("string")),
 					),
-					ResultsMethodOption(
+					ResultsFunctionOption(
 						*NewParameter("", NewType("string")),
 					),
 				),
@@ -1296,14 +1296,14 @@ func TestType_String(t *testing.T) {
 			want: "func(a string) string",
 		},
 		{
-			name: "Should return the correct go source of the type if the type is method type pointer with parameters",
+			name: "Should return the correct go source of the type if the type is function type pointer with parameters",
 			fields: fields{
 				Pointer: true,
-				Method: NewMethodType(
-					ParamsMethodOption(
+				Function: NewFunctionType(
+					ParamsFunctionOption(
 						*NewParameter("a", NewType("string")),
 					),
-					ResultsMethodOption(
+					ResultsFunctionOption(
 						*NewParameter("", NewType("string")),
 					),
 				),
@@ -1315,7 +1315,7 @@ func TestType_String(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			tp := &Type{
 				Import:    tt.fields.Import,
-				Method:    tt.fields.Method,
+				Function:  tt.fields.Function,
 				Pointer:   tt.fields.Pointer,
 				Qualifier: tt.fields.Qualifier,
 			}
@@ -1329,7 +1329,7 @@ func TestType_String(t *testing.T) {
 func TestType_AddDocs(t *testing.T) {
 	type fields struct {
 		Import    *Import
-		Method    *MethodType
+		Function  *FunctionType
 		Pointer   bool
 		Qualifier string
 	}
@@ -1352,7 +1352,7 @@ func TestType_AddDocs(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			tp := &Type{
 				Import:    tt.fields.Import,
-				Method:    tt.fields.Method,
+				Function:  tt.fields.Function,
 				Pointer:   tt.fields.Pointer,
 				Qualifier: tt.fields.Qualifier,
 			}
@@ -1756,13 +1756,13 @@ func TestParameter_String(t *testing.T) {
 				Type: NewType(
 					"",
 					PointerTypeOption(),
-					MethodTypeOption(
-						NewMethodType(
-							ParamsMethodOption(
+					FunctionTypeOption(
+						NewFunctionType(
+							ParamsFunctionOption(
 								*NewParameter("abc", NewType("int", PointerTypeOption())),
 								*NewParameter("d", NewType("string")),
 							),
-							ResultsMethodOption(
+							ResultsFunctionOption(
 								*NewParameter(
 									"r",
 									NewType(
@@ -1820,7 +1820,7 @@ func TestParameter_AddDocs(t *testing.T) {
 	}
 }
 
-func TestMethod_Code(t *testing.T) {
+func TestFunction_Code(t *testing.T) {
 	type fields struct {
 		Name    string
 		docs    []Comment
@@ -1835,14 +1835,14 @@ func TestMethod_Code(t *testing.T) {
 		want   *jen.Statement
 	}{
 		{
-			name: "Should return the correct jen representation of a method",
+			name: "Should return the correct jen representation of a function",
 			fields: fields{
 				Name: "Test",
 			},
 			want: jen.Func().Id("Test").Params().Block(),
 		},
 		{
-			name: "Should return the correct jen representation of a method with parameters",
+			name: "Should return the correct jen representation of a function with parameters",
 			fields: fields{
 				Name:   "Test",
 				Params: []Parameter{*NewParameter("t", NewType("hi"))},
@@ -1850,7 +1850,7 @@ func TestMethod_Code(t *testing.T) {
 			want: jen.Func().Id("Test").Params(NewParameter("t", NewType("hi")).Code()).Block(),
 		},
 		{
-			name: "Should return the correct jen representation of a method with result",
+			name: "Should return the correct jen representation of a function with result",
 			fields: fields{
 				Name:    "Test",
 				Results: []Parameter{*NewParameter("r", NewType("hi"))},
@@ -1858,7 +1858,7 @@ func TestMethod_Code(t *testing.T) {
 			want: jen.Func().Id("Test").Params().Params(NewParameter("r", NewType("hi")).Code()).Block(),
 		},
 		{
-			name: "Should return the correct jen representation of a method with parameters and result",
+			name: "Should return the correct jen representation of a function with parameters and result",
 			fields: fields{
 				Name:    "Test",
 				Params:  []Parameter{*NewParameter("t", NewType("hi"))},
@@ -1869,7 +1869,7 @@ func TestMethod_Code(t *testing.T) {
 			).Params(NewParameter("r", NewType("hi")).Code()).Block(),
 		},
 		{
-			name: "Should return the correct jen representation of a method with receiver",
+			name: "Should return the correct jen representation of a function with receiver",
 			fields: fields{
 				Name: "Test",
 				Recv: NewParameter("t", NewType("hi")),
@@ -1877,7 +1877,7 @@ func TestMethod_Code(t *testing.T) {
 			want: jen.Func().Params(NewParameter("t", NewType("hi")).Code()).Id("Test").Params().Block(),
 		},
 		{
-			name: "Should return the correct jen representation of a method with parameters and receiver",
+			name: "Should return the correct jen representation of a function with parameters and receiver",
 			fields: fields{
 				Name:   "Test",
 				Recv:   NewParameter("rcv", NewType("hi")),
@@ -1888,7 +1888,7 @@ func TestMethod_Code(t *testing.T) {
 			).Id("Test").Params(NewParameter("t", NewType("hi")).Code()).Block(),
 		},
 		{
-			name: "Should return the correct jen representation of a method with parameters and response and receiver",
+			name: "Should return the correct jen representation of a function with parameters and response and receiver",
 			fields: fields{
 				Name:    "Test",
 				Recv:    NewParameter("rcv", NewType("hi")),
@@ -1902,7 +1902,7 @@ func TestMethod_Code(t *testing.T) {
 			).Params(NewParameter("r", NewType("hi")).Code()).Block(),
 		},
 		{
-			name: "Should return the correct jen representation of a method with parameters and response and receiver with docs",
+			name: "Should return the correct jen representation of a function with parameters and response and receiver with docs",
 			fields: fields{
 				docs:    []Comment{"Hello", "Hi", "123"},
 				Name:    "Test",
@@ -1917,7 +1917,7 @@ func TestMethod_Code(t *testing.T) {
 			).Params(NewParameter("r", NewType("hi")).Code()).Block(),
 		},
 		{
-			name: "Should return the correct jen representation of a method with body",
+			name: "Should return the correct jen representation of a function with body",
 			fields: fields{
 				Name: "Test",
 				Body: []jen.Code{jen.Id("fmt.Println(\"Hello\")")},
@@ -1927,7 +1927,7 @@ func TestMethod_Code(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			m := &Method{
+			m := &Function{
 				Name:    tt.fields.Name,
 				docs:    tt.fields.docs,
 				Recv:    tt.fields.Recv,
@@ -1936,13 +1936,13 @@ func TestMethod_Code(t *testing.T) {
 				Body:    tt.fields.Body,
 			}
 			if got := m.Code(); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("Method.Code() = %v, want %v", got, tt.want)
+				t.Errorf("Function.Code() = %v, want %v", got, tt.want)
 			}
 		})
 	}
 }
 
-func TestMethod_AddDocs(t *testing.T) {
+func TestFunction_AddDocs(t *testing.T) {
 	type fields struct {
 		Name    string
 		docs    []Comment
@@ -1960,7 +1960,7 @@ func TestMethod_AddDocs(t *testing.T) {
 		args   args
 		want   []Comment
 	}{{
-		name: "Should add the docs to the method",
+		name: "Should add the docs to the function",
 		fields: fields{
 			Name: "Test",
 		},
@@ -1969,7 +1969,7 @@ func TestMethod_AddDocs(t *testing.T) {
 		},
 		want: []Comment{"This is some docs", "This is some more docs"},
 	}, {
-		name: "Should add the docs to the method with existing docs",
+		name: "Should add the docs to the function with existing docs",
 		fields: fields{
 			Name: "Test",
 			docs: []Comment{"Some initial docs"},
@@ -1982,7 +1982,7 @@ func TestMethod_AddDocs(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			m := &Method{
+			m := &Function{
 				Name:    tt.fields.Name,
 				docs:    tt.fields.docs,
 				Recv:    tt.fields.Recv,
@@ -1992,13 +1992,13 @@ func TestMethod_AddDocs(t *testing.T) {
 			}
 			m.AddDocs(tt.args.docs...)
 			if !reflect.DeepEqual(m.docs, tt.want) {
-				t.Errorf("Method.docs = %v, want %v", m.docs, tt.want)
+				t.Errorf("Function.docs = %v, want %v", m.docs, tt.want)
 			}
 		})
 	}
 }
 
-func TestMethod_String(t *testing.T) {
+func TestFunction_String(t *testing.T) {
 	type fields struct {
 		Name    string
 		docs    []Comment
@@ -2013,14 +2013,14 @@ func TestMethod_String(t *testing.T) {
 		want   string
 	}{
 		{
-			name: "Should return the correct jen representation of a method",
+			name: "Should return the correct jen representation of a function",
 			fields: fields{
 				Name: "Test",
 			},
 			want: "func Test() {}",
 		},
 		{
-			name: "Should return the correct jen representation of a method with parameters",
+			name: "Should return the correct jen representation of a function with parameters",
 			fields: fields{
 				Name:   "Test",
 				Params: []Parameter{*NewParameter("t", NewType("hi"))},
@@ -2028,7 +2028,7 @@ func TestMethod_String(t *testing.T) {
 			want: "func Test(t hi) {}",
 		},
 		{
-			name: "Should return the correct jen representation of a method with result",
+			name: "Should return the correct jen representation of a function with result",
 			fields: fields{
 				Name:    "Test",
 				Results: []Parameter{*NewParameter("r", NewType("hi"))},
@@ -2036,7 +2036,7 @@ func TestMethod_String(t *testing.T) {
 			want: "func Test() (r hi) {}",
 		},
 		{
-			name: "Should return the correct jen representation of a method with parameters and result",
+			name: "Should return the correct jen representation of a function with parameters and result",
 			fields: fields{
 				Name:    "Test",
 				Params:  []Parameter{*NewParameter("t", NewType("hi"))},
@@ -2045,7 +2045,7 @@ func TestMethod_String(t *testing.T) {
 			want: "func Test(t hi) (r hi) {}",
 		},
 		{
-			name: "Should return the correct jen representation of a method with receiver",
+			name: "Should return the correct jen representation of a function with receiver",
 			fields: fields{
 				Name: "Test",
 				Recv: NewParameter("rcv", NewType("hi")),
@@ -2053,7 +2053,7 @@ func TestMethod_String(t *testing.T) {
 			want: "func (rcv hi) Test() {}",
 		},
 		{
-			name: "Should return the correct jen representation of a method with parameters and receiver",
+			name: "Should return the correct jen representation of a function with parameters and receiver",
 			fields: fields{
 				Name:   "Test",
 				Recv:   NewParameter("rcv", NewType("hi")),
@@ -2062,7 +2062,7 @@ func TestMethod_String(t *testing.T) {
 			want: "func (rcv hi) Test(t hi) {}",
 		},
 		{
-			name: "Should return the correct jen representation of a method with parameters and response and receiver",
+			name: "Should return the correct jen representation of a function with parameters and response and receiver",
 			fields: fields{
 				Name:    "Test",
 				Recv:    NewParameter("rcv", NewType("hi")),
@@ -2072,7 +2072,7 @@ func TestMethod_String(t *testing.T) {
 			want: "func (rcv hi) Test(t hi) (r hi) {}",
 		},
 		{
-			name: "Should return the correct jen representation of a method with parameters and response and receiver with docs",
+			name: "Should return the correct jen representation of a function with parameters and response and receiver with docs",
 			fields: fields{
 				docs:    []Comment{"Hello", "Hi", "123"},
 				Name:    "Test",
@@ -2083,7 +2083,7 @@ func TestMethod_String(t *testing.T) {
 			want: "// Hello\n// Hi\n// 123\nfunc (rcv hi) Test(t hi) (r hi) {}",
 		},
 		{
-			name: "Should return the correct jen representation of a method with body",
+			name: "Should return the correct jen representation of a function with body",
 			fields: fields{
 				Name: "Test",
 				Body: []jen.Code{jen.Id("fmt.Println(\"Hello\")")},
@@ -2093,7 +2093,7 @@ func TestMethod_String(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			m := &Method{
+			m := &Function{
 				Name:    tt.fields.Name,
 				docs:    tt.fields.docs,
 				Recv:    tt.fields.Recv,
@@ -2102,13 +2102,13 @@ func TestMethod_String(t *testing.T) {
 				Body:    tt.fields.Body,
 			}
 			if got := m.String(); got != tt.want {
-				t.Errorf("Method.String() = %v, want %v", got, tt.want)
+				t.Errorf("Function.String() = %v, want %v", got, tt.want)
 			}
 		})
 	}
 }
 
-func TestMethod_AddStringBody(t *testing.T) {
+func TestFunction_AddStringBody(t *testing.T) {
 	type fields struct {
 		Name    string
 		docs    []Comment
@@ -2127,7 +2127,7 @@ func TestMethod_AddStringBody(t *testing.T) {
 		want   []jen.Code
 	}{
 		{
-			name: "Should add raw string body to method",
+			name: "Should add raw string body to function",
 			fields: fields{
 				Name: "Test",
 			},
@@ -2150,7 +2150,7 @@ func TestMethod_AddStringBody(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			m := &Method{
+			m := &Function{
 				Name:    tt.fields.Name,
 				docs:    tt.fields.docs,
 				Recv:    tt.fields.Recv,
@@ -2160,7 +2160,7 @@ func TestMethod_AddStringBody(t *testing.T) {
 			}
 			m.AddStringBody(tt.args.s)
 			if !reflect.DeepEqual(m.Body, tt.want) {
-				t.Errorf("Method.Body = %v, want %v", m.docs, tt.want)
+				t.Errorf("Function.Body = %v, want %v", m.docs, tt.want)
 			}
 		})
 	}
@@ -2810,7 +2810,7 @@ func Test_paramsList(t *testing.T) {
 	}
 }
 
-func TestMethodType_Code(t *testing.T) {
+func TestFunctionType_Code(t *testing.T) {
 	type fields struct {
 		Params  []Parameter
 		Results []Parameter
@@ -2821,26 +2821,26 @@ func TestMethodType_Code(t *testing.T) {
 		want   *jen.Statement
 	}{
 		{
-			name:   "Should return the correct jen representation of a method",
+			name:   "Should return the correct jen representation of a function",
 			fields: fields{},
 			want:   jen.Func().Params(),
 		},
 		{
-			name: "Should return the correct jen representation of a method with parameters",
+			name: "Should return the correct jen representation of a function with parameters",
 			fields: fields{
 				Params: []Parameter{*NewParameter("t", NewType("hi"))},
 			},
 			want: jen.Func().Params(NewParameter("t", NewType("hi")).Code()),
 		},
 		{
-			name: "Should return the correct jen representation of a method with result",
+			name: "Should return the correct jen representation of a function with result",
 			fields: fields{
 				Results: []Parameter{*NewParameter("r", NewType("hi"))},
 			},
 			want: jen.Func().Params().Params(NewParameter("r", NewType("hi")).Code()),
 		},
 		{
-			name: "Should return the correct jen representation of a method with parameters and result",
+			name: "Should return the correct jen representation of a function with parameters and result",
 			fields: fields{
 				Params:  []Parameter{*NewParameter("t", NewType("hi"))},
 				Results: []Parameter{*NewParameter("r", NewType("hi"))},
@@ -2852,18 +2852,18 @@ func TestMethodType_Code(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			m := &MethodType{
+			m := &FunctionType{
 				Params:  tt.fields.Params,
 				Results: tt.fields.Results,
 			}
 			if got := m.Code(); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("MethodType.Code() = %v, want %v", got, tt.want)
+				t.Errorf("FunctionType.Code() = %v, want %v", got, tt.want)
 			}
 		})
 	}
 }
 
-func TestMethodType_String(t *testing.T) {
+func TestFunctionType_String(t *testing.T) {
 	type fields struct {
 		Params  []Parameter
 		Results []Parameter
@@ -2874,26 +2874,26 @@ func TestMethodType_String(t *testing.T) {
 		want   string
 	}{
 		{
-			name:   "Should return the correct jen representation of a method",
+			name:   "Should return the correct jen representation of a function",
 			fields: fields{},
 			want:   "func()",
 		},
 		{
-			name: "Should return the correct jen representation of a method with parameters",
+			name: "Should return the correct jen representation of a function with parameters",
 			fields: fields{
 				Params: []Parameter{*NewParameter("t", NewType("hi"))},
 			},
 			want: "func(t hi)",
 		},
 		{
-			name: "Should return the correct jen representation of a method with result",
+			name: "Should return the correct jen representation of a function with result",
 			fields: fields{
 				Results: []Parameter{*NewParameter("r", NewType("hi"))},
 			},
 			want: "func() (r hi)",
 		},
 		{
-			name: "Should return the correct jen representation of a method with parameters and result",
+			name: "Should return the correct jen representation of a function with parameters and result",
 			fields: fields{
 				Params:  []Parameter{*NewParameter("t", NewType("hi"))},
 				Results: []Parameter{*NewParameter("r", NewType("hi"))},
@@ -2903,18 +2903,18 @@ func TestMethodType_String(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			m := &MethodType{
+			m := &FunctionType{
 				Params:  tt.fields.Params,
 				Results: tt.fields.Results,
 			}
 			if got := m.String(); got != tt.want {
-				t.Errorf("MethodType.String() = %v, want %v", got, tt.want)
+				t.Errorf("FunctionType.String() = %v, want %v", got, tt.want)
 			}
 		})
 	}
 }
 
-func TestMethodType_AddDocs(t *testing.T) {
+func TestFunctionType_AddDocs(t *testing.T) {
 	type fields struct {
 		Params  []Parameter
 		Results []Parameter
@@ -2933,7 +2933,7 @@ func TestMethodType_AddDocs(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			m := &MethodType{
+			m := &FunctionType{
 				Params:  tt.fields.Params,
 				Results: tt.fields.Results,
 			}
