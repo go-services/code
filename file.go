@@ -5,10 +5,13 @@ import (
 	"github.com/pkg/errors"
 )
 
+// ImportAlias is used to specify the import alias in a file
 type ImportAlias struct {
 	Name string
 	Path string
 }
+
+// File represents a go source file.
 type File struct {
 	pkg     string
 	jenFile *jen.File
@@ -16,6 +19,7 @@ type File struct {
 	Code []Code
 }
 
+// NewFile creates a new file with the given package name and optional code nodes.
 func NewFile(packageName string, code ...Code) *File {
 	f := &File{
 		pkg:  packageName,
@@ -24,6 +28,8 @@ func NewFile(packageName string, code ...Code) *File {
 	f.jenFile = jen.NewFile(packageName)
 	return f
 }
+
+// NewImportAlias creates a new import alias with the given name and path.
 func NewImportAlias(name, path string) ImportAlias {
 	return ImportAlias{
 		Name: name,
@@ -31,6 +37,8 @@ func NewImportAlias(name, path string) ImportAlias {
 	}
 }
 
+// SetImportAliases sets the files import aliases,
+// if the jenFile representation of the file is nil SetImportAliases will do nothing.
 func (f *File) SetImportAliases(ia []ImportAlias) {
 	if f.jenFile == nil {
 		return
@@ -39,6 +47,9 @@ func (f *File) SetImportAliases(ia []ImportAlias) {
 		f.jenFile.ImportAlias(i.Path, i.Name)
 	}
 }
+
+// String returns the go source string of the file,
+// if the jen representation of the file is nil it will return a basic file with package
 func (f *File) String() string {
 	if f.jenFile == nil {
 		return "package " + f.pkg + "\n"
@@ -49,6 +60,7 @@ func (f *File) String() string {
 	return f.jenFile.GoString()
 }
 
+// AppendAfter appends a new code node after the given code node.
 func (f *File) AppendAfter(c Code, new Code) error {
 	inx := -1
 	for i, v := range f.Code {
@@ -71,6 +83,7 @@ func (f *File) AppendAfter(c Code, new Code) error {
 	return nil
 }
 
+// PrependBefore prepends a new code node before the given code node.
 func (f *File) PrependBefore(c Code, new Code) error {
 	inx := -1
 	for i, v := range f.Code {

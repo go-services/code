@@ -74,6 +74,10 @@ type Type struct {
 	// if method is set all other type parameters besides the pointer are ignored.
 	Function *FunctionType
 
+	// RawType is used to specify complex types (e.x map[string]*test.SomeStruct)
+	// if the raw type is not nil all the other parameters will be ignored.
+	RawType *jen.Statement
+
 	// Pointer tells if the type is a pointer.
 	Pointer bool
 
@@ -181,7 +185,6 @@ type Interface struct {
 // NewImport creates a new Import with the given alias and path.
 //
 // alias is the alias you want to give a package (e.x import my_alias "fmt")
-
 // path  is the import path (e.x "github.com/go-services/code")
 func NewImport(alias, path string) *Import {
 	return &Import{
@@ -243,6 +246,13 @@ func NewType(qualifier string, options ...TypeOptions) Type {
 	return tp
 }
 
+// NewRawType creates a new type with raw jen statement.
+func NewRawType(tp *jen.Statement) Type {
+	return Type{
+		RawType: tp,
+	}
+}
+
 // NewVar creates a new var with the given name and type,
 // there is also an optional list of documentation comments that you can add to the variable
 func NewVar(name string, tp Type, docs ...Comment) *Var {
@@ -253,14 +263,14 @@ func NewVar(name string, tp Type, docs ...Comment) *Var {
 	}
 }
 
-// NewVar creates a new var with the given name type and value.
+// NewVarWithValue creates a new var with the given name type and value.
 func NewVarWithValue(name string, tp Type, value interface{}, docs ...Comment) *Var {
 	v := NewVar(name, tp, docs...)
 	v.Value = value
 	return v
 }
 
-// NewConst creates a new constant with the given name type and value.
+// NewConst creates a 7new constant with the given name type and value.
 func NewConst(name string, tp Type, value interface{}, docs ...Comment) *Const {
 	v := NewVar(name, tp, docs...)
 	v.Value = value
@@ -406,11 +416,14 @@ func (c Comment) String() string {
 
 // AddDocs does nothing for the comment code.
 // We only implement this so we implement the Code interface.
-func (c Comment) AddDocs(docs ...Comment) { return }
+func (c Comment) AddDocs(_ ...Comment) {}
 
 // Code returns the jen representation of the the type.
 func (t Type) Code() *jen.Statement {
 	code := &jen.Statement{}
+	if t.RawType != nil {
+		return t.RawType
+	}
 	if t.Pointer {
 		code.Id("*")
 	}
@@ -428,6 +441,14 @@ func (t Type) Code() *jen.Statement {
 // String returns the go code string of the type,
 // if the type is a function type the function string tis used.
 func (t Type) String() string {
+	if t.RawType != nil {
+		// Hack to get the reader to not panic for complex types
+		v := NewVar("_", t)
+		s := v.Code().GoString()
+		s = strings.TrimPrefix(s, "var _ ")
+		// -----
+		return s
+	}
 	if t.Function != nil {
 		s := t.Function.String()
 		if t.Pointer {
@@ -440,7 +461,7 @@ func (t Type) String() string {
 
 // AddDocs does nothing for the type code.
 // We only implement this so we implement the Code interface.
-func (t Type) AddDocs(docs ...Comment) { return }
+func (t Type) AddDocs(_ ...Comment) {}
 
 // Code returns the jen representation of the variable.
 func (v *Var) Code() *jen.Statement {
@@ -510,9 +531,7 @@ func (p *Parameter) String() string {
 
 // AddDocs does nothing for the parameter code.
 // We only implement this so we implement the Code interface.
-func (p *Parameter) AddDocs(docs ...Comment) {
-	return
-}
+func (p *Parameter) AddDocs(_ ...Comment) {}
 
 // Code returns the jen representation of the function type.
 func (m *FunctionType) Code() *jen.Statement {
@@ -530,7 +549,7 @@ func (m *FunctionType) Code() *jen.Statement {
 // than we remove everything besides the function type.
 func (m *FunctionType) String() string {
 	code := m.Code()
-	// Hack to get the reader to not throw errors in function types
+	// Hack to get the reader to not panic in function types
 	fakeStruct := jen.Type().Id("_").Struct(jen.Id("_").Add(code))
 	s := fakeStruct.GoString()
 	s = strings.TrimPrefix(s, "type _ struct {\n\t_ ")
@@ -541,7 +560,7 @@ func (m *FunctionType) String() string {
 
 // AddDocs does nothing for the function type code.
 // We only implement this so we implement the Code interface.
-func (m *FunctionType) AddDocs(docs ...Comment) { return }
+func (m *FunctionType) AddDocs(_ ...Comment) {}
 
 // Code returns the jen representation of the function.
 func (m *Function) Code() *jen.Statement {
@@ -585,9 +604,12 @@ func (s *StructField) Code() *jen.Statement {
 	return code
 }
 
+// String returns the go code string of the struct field.
+// because the renderer does not render only struct fields we create a dummy structure to add the struct field to
+// than we remove everything besides the struct field.
 func (s *StructField) String() string {
 	code := s.Code()
-	// Hack to get the reader to not throw errors in struct fields
+	// Hack to get the reader to not panic in struct fields
 	fakeStruct := jen.Type().Id("_").Struct(code)
 	str := fakeStruct.GoString()
 	str = strings.TrimPrefix(str, "type _ struct {\n\t")
@@ -596,26 +618,24 @@ func (s *StructField) String() string {
 	return prepareLines(str)
 }
 
+// Code returns the jen representation of the structure.
 func (s *Struct) Code() *jen.Statement {
 	code := &jen.Statement{}
 	addDocsCode(code, s.docs)
 	return code.Type().Id(s.Name).Struct(fieldList(s.Fields)...)
 }
-func fieldList(fields []StructField) (f []jen.Code) {
-	for _, p := range fields {
-		f = append(f, p.Code())
-	}
-	return
-}
 
+// String returns the go code string of the structure.
 func (s *Struct) String() string {
 	return codeString(s)
 }
 
+// AddDocs adds a list of documentation strings to the structure.
 func (s *Struct) AddDocs(docs ...Comment) {
 	s.docs = append(s.docs, docs...)
 }
 
+// Code returns the jen representation of the interface method.
 func (m *InterfaceMethod) Code() *jen.Statement {
 	code := &jen.Statement{}
 	addDocsCode(code, m.docs)
@@ -628,20 +648,26 @@ func (m *InterfaceMethod) Code() *jen.Statement {
 	return code
 }
 
+// String returns the go code string of the interface method.
+// because the renderer does not render only interface methods we create a dummy interface to add the interface method to
+// than we remove everything besides the interface method.
 func (m *InterfaceMethod) String() string {
 	code := m.Code()
-	// Hack to get the reader to not throw errors in struct fields
-	fakeStruct := jen.Type().Id("_").Interface(code)
-	str := fakeStruct.GoString()
+	// Hack to get the reader to not panic in interface methods.
+	fakeInterface := jen.Type().Id("_").Interface(code)
+	str := fakeInterface.GoString()
 	str = strings.TrimPrefix(str, "type _ interface {\n\t")
 	str = strings.TrimSuffix(str, "\n}")
 	// -----
 	return prepareLines(str)
 }
 
+// AddDocs adds a list of documentation strings to the interface method.
 func (m *InterfaceMethod) AddDocs(docs ...Comment) {
 	m.docs = append(m.docs, docs...)
 }
+
+// Code returns the jen representation of the interface.
 func (i *Interface) Code() *jen.Statement {
 	code := &jen.Statement{}
 	addDocsCode(code, i.docs)
@@ -657,14 +683,17 @@ func (i *Interface) Code() *jen.Statement {
 	return code
 }
 
+// String returns the go code string of the interface.
 func (i *Interface) String() string {
 	return codeString(i)
 }
 
+// AddDocs adds a list of documentation strings to the interface.
 func (i *Interface) AddDocs(docs ...Comment) {
 	i.docs = append(i.docs, docs...)
 }
 
+// Set is used to set an existing or new field tag.
 func (f *FieldTags) Set(key, value string) {
 	if *f == nil {
 		*f = map[string]string{
@@ -673,6 +702,14 @@ func (f *FieldTags) Set(key, value string) {
 	}
 	(*f)[key] = value
 }
+
+func fieldList(fields []StructField) (f []jen.Code) {
+	for _, p := range fields {
+		f = append(f, p.Code())
+	}
+	return
+}
+
 func codeString(c Code) string {
 	return c.Code().GoString()
 }
@@ -690,7 +727,7 @@ func prepareLines(s string) string {
 	for _, l := range lines {
 		results = append(results, strings.TrimPrefix(l, "\t"))
 	}
-	return string(strings.Join(results, "\n"))
+	return strings.Join(results, "\n")
 }
 
 func paramsList(paramList []Parameter) (l []jen.Code) {

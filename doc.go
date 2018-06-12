@@ -1,4 +1,4 @@
-// code is a small wrapper for https://github.com/dave/jennifer this package is used to easily generate go code
+// Package code is a small wrapper for https://github.com/dave/jennifer this package is used to easily generate go code
 // it also has a very straight forward api.
 //
 // e.x to create a structure:

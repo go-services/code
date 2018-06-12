@@ -239,7 +239,7 @@ func TestNewType(t *testing.T) {
 	}
 }
 
-func TestNewMethodType(t *testing.T) {
+func TestNewFunctionType(t *testing.T) {
 	type args struct {
 		options []FunctionOptions
 	}
@@ -447,7 +447,6 @@ func TestNewParameter(t *testing.T) {
 	type args struct {
 		name string
 		tp   Type
-		docs []Comment
 	}
 	tests := []struct {
 		name string
@@ -1140,6 +1139,7 @@ func TestComment_AddDocs(t *testing.T) {
 func TestType_Code(t *testing.T) {
 	type fields struct {
 		Import    *Import
+		RawType   *jen.Statement
 		Method    *FunctionType
 		Pointer   bool
 		Qualifier string
@@ -1201,12 +1201,20 @@ func TestType_Code(t *testing.T) {
 			},
 			want: jen.Id("*").Add(jen.Func().Params()),
 		},
+		{
+			name: "Should return the correct jen representation of the raw type",
+			fields: fields{
+				RawType: jen.Map(jen.String()).Id("*").Qual("test", "Test"),
+			},
+			want: jen.Map(jen.String()).Id("*").Qual("test", "Test"),
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			tp := &Type{
 				Import:    tt.fields.Import,
 				Function:  tt.fields.Method,
+				RawType:   tt.fields.RawType,
 				Pointer:   tt.fields.Pointer,
 				Qualifier: tt.fields.Qualifier,
 			}
@@ -1220,6 +1228,7 @@ func TestType_Code(t *testing.T) {
 func TestType_String(t *testing.T) {
 	type fields struct {
 		Import    *Import
+		RawType   *jen.Statement
 		Function  *FunctionType
 		Pointer   bool
 		Qualifier string
@@ -1310,11 +1319,19 @@ func TestType_String(t *testing.T) {
 			},
 			want: "*func(a string) string",
 		},
+		{
+			name: "Should return the correct jen representation of the raw type",
+			fields: fields{
+				RawType: jen.Map(jen.String()).Id("*").Qual("test", "Test"),
+			},
+			want: "map[string]*test.Test",
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			tp := &Type{
 				Import:    tt.fields.Import,
+				RawType:   tt.fields.RawType,
 				Function:  tt.fields.Function,
 				Pointer:   tt.fields.Pointer,
 				Qualifier: tt.fields.Qualifier,
@@ -1699,7 +1716,6 @@ func TestConst_AddDocs(t *testing.T) {
 
 func TestParameter_Code(t *testing.T) {
 	type fields struct {
-		docs []Comment
 		Name string
 		Type Type
 	}
@@ -3146,6 +3162,34 @@ func TestInterface_AddDocs(t *testing.T) {
 
 			if !reflect.DeepEqual(i.docs, tt.want) {
 				t.Errorf("Interface.docs = %v, want %v", i.docs, tt.want)
+			}
+		})
+	}
+}
+
+func TestNewRawType(t *testing.T) {
+	type args struct {
+		tp *jen.Statement
+	}
+	tests := []struct {
+		name string
+		args args
+		want Type
+	}{
+		{
+			name: "Should return a new raw type",
+			args: args{
+				tp: jen.Map(jen.String()).Id("*").Qual("test", "Test"),
+			},
+			want: Type{
+				RawType: jen.Map(jen.String()).Id("*").Qual("test", "Test"),
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := NewRawType(tt.args.tp); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("NewRawType() = %v, want %v", got, tt.want)
 			}
 		})
 	}
