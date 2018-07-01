@@ -432,6 +432,10 @@ func (t Type) Code() *jen.Statement {
 		return code
 	}
 	if t.Import != nil {
+		if t.Import.Alias != "" {
+			code.Id(t.Import.Alias).Dot(t.Qualifier)
+			return code
+		}
 		code.Qual(t.Import.Path, t.Qualifier)
 		return code
 	}
@@ -563,34 +567,44 @@ func (m *FunctionType) String() string {
 func (m *FunctionType) AddDocs(_ ...Comment) {}
 
 // Code returns the jen representation of the function.
-func (m *Function) Code() *jen.Statement {
+func (f *Function) Code() *jen.Statement {
 	code := &jen.Statement{}
-	addDocsCode(code, m.docs)
+	addDocsCode(code, f.docs)
 	code.Func()
-	if m.Recv != nil {
-		code.Params(m.Recv.Code())
+	if f.Recv != nil {
+		code.Params(f.Recv.Code())
 	}
-	code.Id(m.Name)
-	code.Params(paramsList(m.Params)...)
-	if m.Results != nil && len(m.Results) > 0 {
-		code.Params(paramsList(m.Results)...)
+	code.Id(f.Name)
+	code.Params(paramsList(f.Params)...)
+	if f.Results != nil && len(f.Results) > 0 {
+		code.Params(paramsList(f.Results)...)
 	}
-	return code.Block(m.Body...)
+	return code.Block(f.Body...)
 }
 
 // AddDocs adds a list of documentation strings to the function.
-func (m *Function) AddDocs(docs ...Comment) {
-	m.docs = append(m.docs, docs...)
+func (f *Function) AddDocs(docs ...Comment) {
+	f.docs = append(f.docs, docs...)
 }
 
 // String returns the go code string of the function.
-func (m *Function) String() string {
-	return codeString(m)
+func (f *Function) String() string {
+	return codeString(f)
 }
 
 // AddStringBody adds raw string code to the body of the function.
-func (m *Function) AddStringBody(s string) {
-	m.Body = append(m.Body, jen.Id(s))
+func (f *Function) AddStringBody(s string) {
+	f.Body = append(f.Body, jen.Id(s))
+}
+
+// AddParameter adds a new parameter to the function.
+func (f *Function) AddParameter(p Parameter) {
+	f.Params = append(f.Params, p)
+}
+
+// AddResult adds a new result to the function.
+func (f *Function) AddResult(p Parameter) {
+	f.Results = append(f.Params, p)
 }
 
 // Code returns the jen representation of the structure field.
@@ -691,6 +705,11 @@ func (i *Interface) String() string {
 // AddDocs adds a list of documentation strings to the interface.
 func (i *Interface) AddDocs(docs ...Comment) {
 	i.docs = append(i.docs, docs...)
+}
+
+// AddMethod a method to the method list
+func (i *Interface) AddMethod(m InterfaceMethod) {
+	i.Methods = append(i.Methods, m)
 }
 
 // Set is used to set an existing or new field tag.

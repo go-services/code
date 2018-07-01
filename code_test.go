@@ -1168,12 +1168,22 @@ func TestType_Code(t *testing.T) {
 			name: "Should return the correct jen representation of the type if the type is import qualifier",
 			fields: fields{
 				Import: &Import{
-					Alias: "test",
-					Path:  "test/test/test",
+					Path: "test/test/test",
 				},
 				Qualifier: "Test",
 			},
 			want: jen.Qual("test/test/test", "Test"),
+		},
+		{
+			name: "Should return the correct jen representation of the type if the type is import qualifier with alias",
+			fields: fields{
+				Import: &Import{
+					Alias: "hello",
+					Path:  "test/test/test",
+				},
+				Qualifier: "Test",
+			},
+			want: jen.Id("hello").Dot("Test"),
 		},
 		{
 			name: "Should return the correct jen representation of the type if the type is pointer import qualifier",
@@ -3190,6 +3200,149 @@ func TestNewRawType(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := NewRawType(tt.args.tp); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("NewRawType() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestFunction_AddParameter(t *testing.T) {
+	type fields struct {
+		Name    string
+		Recv    *Parameter
+		Params  []Parameter
+		Results []Parameter
+		Body    []jen.Code
+		docs    []Comment
+	}
+	type args struct {
+		p Parameter
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		args   args
+		want   []Parameter
+	}{
+		{
+			name: "Should add the parameter to the list",
+			fields: fields{
+				Name: "Test",
+			},
+			args: args{
+				p: *NewParameter("test", NewType("string")),
+			},
+			want: []Parameter{
+				*NewParameter("test", NewType("string")),
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			f := &Function{
+				Name:    tt.fields.Name,
+				Recv:    tt.fields.Recv,
+				Params:  tt.fields.Params,
+				Results: tt.fields.Results,
+				Body:    tt.fields.Body,
+				docs:    tt.fields.docs,
+			}
+			f.AddParameter(tt.args.p)
+			if !reflect.DeepEqual(f.Params, tt.want) {
+				t.Errorf("Function.Params = %v, want %v", f.Params, tt.want)
+			}
+		})
+	}
+}
+
+func TestFunction_AddResult(t *testing.T) {
+	type fields struct {
+		Name    string
+		Recv    *Parameter
+		Params  []Parameter
+		Results []Parameter
+		Body    []jen.Code
+		docs    []Comment
+	}
+	type args struct {
+		p Parameter
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		args   args
+		want   []Parameter
+	}{
+		{
+			name: "Should add the parameter to the list",
+			fields: fields{
+				Name: "Test",
+			},
+			args: args{
+				p: *NewParameter("test", NewType("string")),
+			},
+			want: []Parameter{
+				*NewParameter("test", NewType("string")),
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			f := &Function{
+				Name:    tt.fields.Name,
+				Recv:    tt.fields.Recv,
+				Params:  tt.fields.Params,
+				Results: tt.fields.Results,
+				Body:    tt.fields.Body,
+				docs:    tt.fields.docs,
+			}
+			f.AddResult(tt.args.p)
+
+			if !reflect.DeepEqual(f.Results, tt.want) {
+				t.Errorf("Function.Results = %v, want %v", f.Results, tt.want)
+			}
+		})
+	}
+}
+
+func TestInterface_AddMethod(t *testing.T) {
+	type fields struct {
+		Name    string
+		Methods []InterfaceMethod
+		docs    []Comment
+	}
+	type args struct {
+		m InterfaceMethod
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		args   args
+		want   []InterfaceMethod
+	}{
+		{
+			name: "Should add method to the list",
+			fields: fields{
+				Name: "MyInterface",
+			},
+			args: args{
+				m: NewInterfaceMethod("test"),
+			},
+			want: []InterfaceMethod{
+				NewInterfaceMethod("test"),
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			i := &Interface{
+				Name:    tt.fields.Name,
+				Methods: tt.fields.Methods,
+				docs:    tt.fields.docs,
+			}
+			i.AddMethod(tt.args.m)
+
+			if !reflect.DeepEqual(i.Methods, tt.want) {
+				t.Errorf("Interface.Methods = %v, want %v", i.Methods, tt.want)
 			}
 		})
 	}
