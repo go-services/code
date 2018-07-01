@@ -3347,3 +3347,369 @@ func TestInterface_AddMethod(t *testing.T) {
 		})
 	}
 }
+
+func TestComment_Docs(t *testing.T) {
+	tests := []struct {
+		name string
+		c    Comment
+		want []Comment
+	}{
+		{
+			name: "Should do nothing",
+			c:    Comment("hi"),
+			want: nil,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.c.Docs(); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("Comment.Docs() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestType_Docs(t *testing.T) {
+	type fields struct {
+		Import    *Import
+		Function  *FunctionType
+		RawType   *jen.Statement
+		Pointer   bool
+		Qualifier string
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		want   []Comment
+	}{
+		{
+			name: "Should do nothing",
+			want: nil,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tp := Type{
+				Import:    tt.fields.Import,
+				Function:  tt.fields.Function,
+				RawType:   tt.fields.RawType,
+				Pointer:   tt.fields.Pointer,
+				Qualifier: tt.fields.Qualifier,
+			}
+			if got := tp.Docs(); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("Type.Docs() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestVar_Docs(t *testing.T) {
+	type fields struct {
+		Name  string
+		Type  Type
+		Value interface{}
+		docs  []Comment
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		want   []Comment
+	}{
+		{
+			name: "Should return the docs",
+			fields: fields{
+				docs: []Comment{"Hi", "Hello"},
+			},
+			want: []Comment{"Hi", "Hello"},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			v := &Var{
+				Name:  tt.fields.Name,
+				Type:  tt.fields.Type,
+				Value: tt.fields.Value,
+				docs:  tt.fields.docs,
+			}
+			if got := v.Docs(); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("Var.Docs() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestConst_Docs(t *testing.T) {
+	type fields struct {
+		Name  string
+		Type  Type
+		Value interface{}
+		docs  []Comment
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		want   []Comment
+	}{
+		{
+			name: "Should return the docs",
+			fields: fields{
+				docs: []Comment{"Hi", "Hello"},
+			},
+			want: []Comment{"Hi", "Hello"},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := &Const{
+				Name:  tt.fields.Name,
+				Type:  tt.fields.Type,
+				Value: tt.fields.Value,
+				docs:  tt.fields.docs,
+			}
+			if got := c.Docs(); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("Const.Docs() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestParameter_Docs(t *testing.T) {
+	type fields struct {
+		Name string
+		Type Type
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		want   []Comment
+	}{
+		{
+			name: "Should do nothing",
+			want: nil,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			p := &Parameter{
+				Name: tt.fields.Name,
+				Type: tt.fields.Type,
+			}
+			if got := p.Docs(); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("Parameter.Docs() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestFunctionType_Docs(t *testing.T) {
+	type fields struct {
+		Name    string
+		Recv    *Parameter
+		Params  []Parameter
+		Results []Parameter
+		Body    []jen.Code
+		docs    []Comment
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		want   []Comment
+	}{
+		{
+			name: "Should do nothing",
+			want: nil,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			m := &FunctionType{
+				Name:    tt.fields.Name,
+				Recv:    tt.fields.Recv,
+				Params:  tt.fields.Params,
+				Results: tt.fields.Results,
+				Body:    tt.fields.Body,
+				docs:    tt.fields.docs,
+			}
+			if got := m.Docs(); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("FunctionType.Docs() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestFunction_Docs(t *testing.T) {
+	type fields struct {
+		Name    string
+		Recv    *Parameter
+		Params  []Parameter
+		Results []Parameter
+		Body    []jen.Code
+		docs    []Comment
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		want   []Comment
+	}{
+		{
+			name: "Should return the docs",
+			fields: fields{
+				docs: []Comment{"Hi", "Hello"},
+			},
+			want: []Comment{"Hi", "Hello"},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			f := &Function{
+				Name:    tt.fields.Name,
+				Recv:    tt.fields.Recv,
+				Params:  tt.fields.Params,
+				Results: tt.fields.Results,
+				Body:    tt.fields.Body,
+				docs:    tt.fields.docs,
+			}
+			if got := f.Docs(); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("Function.Docs() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestStructField_Docs(t *testing.T) {
+	type fields struct {
+		Parameter Parameter
+		Tags      *FieldTags
+		docs      []Comment
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		want   []Comment
+	}{
+		{
+			name: "Should return the docs",
+			fields: fields{
+				docs: []Comment{"Hi", "Hello"},
+			},
+			want: []Comment{"Hi", "Hello"},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := &StructField{
+				Parameter: tt.fields.Parameter,
+				Tags:      tt.fields.Tags,
+				docs:      tt.fields.docs,
+			}
+			if got := s.Docs(); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("StructField.Docs() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestStruct_Docs(t *testing.T) {
+	type fields struct {
+		docs   []Comment
+		Name   string
+		Fields []StructField
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		want   []Comment
+	}{
+		{
+			name: "Should return the docs",
+			fields: fields{
+				docs: []Comment{"Hi", "Hello"},
+			},
+			want: []Comment{"Hi", "Hello"},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := &Struct{
+				docs:   tt.fields.docs,
+				Name:   tt.fields.Name,
+				Fields: tt.fields.Fields,
+			}
+			if got := s.Docs(); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("Struct.Docs() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestInterfaceMethod_Docs(t *testing.T) {
+	type fields struct {
+		Name    string
+		Recv    *Parameter
+		Params  []Parameter
+		Results []Parameter
+		Body    []jen.Code
+		docs    []Comment
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		want   []Comment
+	}{
+		{
+			name: "Should return the docs",
+			fields: fields{
+				docs: []Comment{"Hi", "Hello"},
+			},
+			want: []Comment{"Hi", "Hello"},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			m := &InterfaceMethod{
+				Name:    tt.fields.Name,
+				Recv:    tt.fields.Recv,
+				Params:  tt.fields.Params,
+				Results: tt.fields.Results,
+				Body:    tt.fields.Body,
+				docs:    tt.fields.docs,
+			}
+			if got := m.Docs(); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("InterfaceMethod.Docs() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestInterface_Docs(t *testing.T) {
+	type fields struct {
+		Name    string
+		Methods []InterfaceMethod
+		docs    []Comment
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		want   []Comment
+	}{
+		{
+			name: "Should return the docs",
+			fields: fields{
+				docs: []Comment{"Hi", "Hello"},
+			},
+			want: []Comment{"Hi", "Hello"},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			i := &Interface{
+				Name:    tt.fields.Name,
+				Methods: tt.fields.Methods,
+				docs:    tt.fields.docs,
+			}
+			if got := i.Docs(); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("Interface.Docs() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}

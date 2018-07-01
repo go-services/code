@@ -7,6 +7,9 @@ import (
 
 // Code is the interface that all code nodes need to implement.
 type Code interface {
+	// Docs returns the documentation comments
+	Docs() []Comment
+
 	// String returns the string representation of the code.
 	String() string
 
@@ -409,6 +412,11 @@ func (c Comment) Code() *jen.Statement {
 	return jen.Comment(string(c))
 }
 
+// Docs does nothing for the comment code.
+func (c Comment) Docs() []Comment {
+	return nil
+}
+
 // String returns the go code string of the comment.
 func (c Comment) String() string {
 	return codeString(&c)
@@ -463,6 +471,11 @@ func (t Type) String() string {
 	return codeString(t)
 }
 
+// Docs does nothing for the Type code.
+func (t Type) Docs() []Comment {
+	return nil
+}
+
 // AddDocs does nothing for the type code.
 // We only implement this so we implement the Code interface.
 func (t Type) AddDocs(_ ...Comment) {}
@@ -481,6 +494,11 @@ func (v *Var) Code() *jen.Statement {
 // String returns the go code string of the variable.
 func (v *Var) String() string {
 	return codeString(v)
+}
+
+// Docs returns the docs comments of the variable.
+func (v *Var) Docs() []Comment {
+	return v.docs
 }
 
 // AddDocs adds a list of documentation strings to the variable.
@@ -504,6 +522,11 @@ func (c *Const) Code() *jen.Statement {
 // String returns the go code string of the constant.
 func (c *Const) String() string {
 	return codeString(c)
+}
+
+// Docs returns the docs comments of the constant.
+func (c *Const) Docs() []Comment {
+	return c.docs
 }
 
 // AddDocs adds a list of documentation strings to the constant.
@@ -531,6 +554,11 @@ func (p *Parameter) String() string {
 	s = strings.TrimSuffix(s, ") {}")
 	// -----
 	return s
+}
+
+// Docs does nothing for the parameter code.
+func (p *Parameter) Docs() []Comment {
+	return nil
 }
 
 // AddDocs does nothing for the parameter code.
@@ -562,6 +590,11 @@ func (m *FunctionType) String() string {
 	return s
 }
 
+// Docs does nothing for the function type code.
+func (m *FunctionType) Docs() []Comment {
+	return nil
+}
+
 // AddDocs does nothing for the function type code.
 // We only implement this so we implement the Code interface.
 func (m *FunctionType) AddDocs(_ ...Comment) {}
@@ -580,6 +613,11 @@ func (f *Function) Code() *jen.Statement {
 		code.Params(paramsList(f.Results)...)
 	}
 	return code.Block(f.Body...)
+}
+
+// Docs returns the docs comments of the function.
+func (f *Function) Docs() []Comment {
+	return f.docs
 }
 
 // AddDocs adds a list of documentation strings to the function.
@@ -632,6 +670,11 @@ func (s *StructField) String() string {
 	return prepareLines(str)
 }
 
+// Docs returns the docs comments of the structure field.
+func (s *StructField) Docs() []Comment {
+	return s.docs
+}
+
 // Code returns the jen representation of the structure.
 func (s *Struct) Code() *jen.Statement {
 	code := &jen.Statement{}
@@ -642,6 +685,11 @@ func (s *Struct) Code() *jen.Statement {
 // String returns the go code string of the structure.
 func (s *Struct) String() string {
 	return codeString(s)
+}
+
+// Docs returns the docs comments of the structure.
+func (s *Struct) Docs() []Comment {
+	return s.docs
 }
 
 // AddDocs adds a list of documentation strings to the structure.
@@ -676,6 +724,11 @@ func (m *InterfaceMethod) String() string {
 	return prepareLines(str)
 }
 
+// Docs returns the docs comments of the interface method.
+func (m *InterfaceMethod) Docs() []Comment {
+	return m.docs
+}
+
 // AddDocs adds a list of documentation strings to the interface method.
 func (m *InterfaceMethod) AddDocs(docs ...Comment) {
 	m.docs = append(m.docs, docs...)
@@ -700,6 +753,11 @@ func (i *Interface) Code() *jen.Statement {
 // String returns the go code string of the interface.
 func (i *Interface) String() string {
 	return codeString(i)
+}
+
+// Docs returns the docs comments of the interface.
+func (i *Interface) Docs() []Comment {
+	return i.docs
 }
 
 // AddDocs adds a list of documentation strings to the interface.
