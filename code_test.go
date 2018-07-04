@@ -3713,3 +3713,141 @@ func TestInterface_Docs(t *testing.T) {
 		})
 	}
 }
+
+func TestNewRawCode(t *testing.T) {
+	type args struct {
+		code *jen.Statement
+	}
+	tests := []struct {
+		name string
+		args args
+		want *RawCode
+	}{
+		{
+			name: "Should return a new raw comment",
+			args: args{
+				code: jen.Println(jen.Lit("Hello")),
+			},
+			want: &RawCode{
+				code: jen.Println(jen.Lit("Hello")),
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := NewRawCode(tt.args.code); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("NewRawCode() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestRawCode_Code(t *testing.T) {
+	type fields struct {
+		code *jen.Statement
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		want   *jen.Statement
+	}{
+		{
+			name: "Should return a new raw code",
+			fields: fields{
+				code: jen.Println(jen.Lit("Hello")),
+			},
+			want: jen.Println(jen.Lit("Hello")),
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := &RawCode{
+				code: tt.fields.code,
+			}
+			if got := c.Code(); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("RawCode.Code() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestRawCode_Docs(t *testing.T) {
+	type fields struct {
+		code *jen.Statement
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		want   []Comment
+	}{
+		{
+			name: "Should do nothing",
+			want: nil,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := &RawCode{
+				code: tt.fields.code,
+			}
+			if got := c.Docs(); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("RawCode.Docs() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestRawCode_AddDocs(t *testing.T) {
+	type fields struct {
+		code *jen.Statement
+	}
+	type args struct {
+		in0 []Comment
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		args   args
+	}{
+		{
+			name: "Should do nothing",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := &RawCode{
+				code: tt.fields.code,
+			}
+			c.AddDocs(tt.args.in0...)
+		})
+	}
+}
+
+func TestRawCode_String(t *testing.T) {
+	type fields struct {
+		code *jen.Statement
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		want   string
+	}{
+		{
+			name: "Should return a the string of the raw code",
+			fields: fields{
+				code: jen.Println(jen.Lit("Hello")),
+			},
+			want: "println(\"Hello\")",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := &RawCode{
+				code: tt.fields.code,
+			}
+			if got := c.String(); got != tt.want {
+				t.Errorf("RawCode.String() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}

@@ -185,6 +185,12 @@ type Interface struct {
 	docs []Comment
 }
 
+
+// RawCode represents raw lines of code.
+type RawCode struct {
+	code *jen.Statement
+}
+
 // NewImport creates a new Import with the given alias and path.
 //
 // alias is the alias you want to give a package (e.x import my_alias "fmt")
@@ -405,6 +411,31 @@ func NewInterface(name string, methods []InterfaceMethod, docs ...Comment) *Inte
 		Methods: methods,
 		docs:    docs,
 	}
+}
+
+func NewRawCode(code *jen.Statement) *RawCode {
+	return &RawCode{
+		code:code,
+	}
+}
+
+// Code returns the jen representation of code.
+func (c *RawCode) Code() *jen.Statement {
+	return c.code
+}
+
+// Docs does nothing for the code.
+func (c *RawCode) Docs() []Comment {
+	return nil
+}
+
+// AddDocs does nothing for the code.
+// We only implement this so we implement the Code interface.
+func (c *RawCode) AddDocs(_ ...Comment) {}
+
+// String returns the go code string of the comment.
+func (c *RawCode) String() string {
+	return codeString(c)
 }
 
 // Code returns the jen representation of the comment.
