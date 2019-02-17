@@ -84,6 +84,9 @@ type Type struct {
 	// Pointer tells if the type is a pointer.
 	Pointer bool
 
+	// Variadic tells if the type is used for variadic functions
+	Variadic bool
+
 	// Qualifier specifies the qualifier, for simple types like `string` it is the only
 	// parameter set on the type.
 	Qualifier string
@@ -234,6 +237,12 @@ func FunctionTypeOption(m *FunctionType) TypeOptions {
 func PointerTypeOption() TypeOptions {
 	return func(t *Type) {
 		t.Pointer = true
+	}
+}
+// VariadicTypeOption marks the type as variadic.
+func VariadicTypeOption() TypeOptions {
+	return func(t *Type) {
+		t.Variadic = true
 	}
 }
 
@@ -463,6 +472,9 @@ func (t Type) Code() *jen.Statement {
 	if t.RawType != nil {
 		return t.RawType
 	}
+	if t.Variadic {
+		code.Op("...")
+	}
 	if t.Pointer {
 		code.Id("*")
 	}
@@ -494,10 +506,20 @@ func (t Type) String() string {
 	}
 	if t.Function != nil {
 		s := t.Function.String()
+		if t.Variadic {
+			s = "..." + s
+		}
 		if t.Pointer {
 			s = "*" + s
 		}
 		return s
+	}
+	if t.Variadic {
+		code := jen.Func().Id("_").Params(t.Code()).Block()
+		s := code.GoString()
+		s = strings.TrimPrefix(s, "func _(")
+		s = strings.TrimSuffix(s, ") {}")
+		return  s
 	}
 	return codeString(t)
 }

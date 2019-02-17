@@ -1142,6 +1142,7 @@ func TestType_Code(t *testing.T) {
 		RawType   *jen.Statement
 		Method    *FunctionType
 		Pointer   bool
+		Variadic  bool
 		Qualifier string
 	}
 	tests := []struct {
@@ -1163,6 +1164,23 @@ func TestType_Code(t *testing.T) {
 				Qualifier: "string",
 			},
 			want: jen.Id("*").Id("string"),
+		},
+		{
+			name: "Should return the correct jen representation of the type if the type is variadic",
+			fields: fields{
+				Variadic:  true,
+				Qualifier: "string",
+			},
+			want: jen.Id("...").Id("string"),
+		},
+		{
+			name: "Should return the correct jen representation of the type if the type is variadic and pointer",
+			fields: fields{
+				Pointer:   true,
+				Variadic:  true,
+				Qualifier: "string",
+			},
+			want: jen.Id("...").Id("*").Id("string"),
 		},
 		{
 			name: "Should return the correct jen representation of the type if the type is import qualifier",
@@ -1241,6 +1259,7 @@ func TestType_String(t *testing.T) {
 		RawType   *jen.Statement
 		Function  *FunctionType
 		Pointer   bool
+		Variadic   bool
 		Qualifier string
 	}
 	tests := []struct {
@@ -1262,6 +1281,23 @@ func TestType_String(t *testing.T) {
 				Qualifier: "string",
 			},
 			want: "*string",
+		},
+		{
+			name: "Should return the correct go source of the type if the type is variadic qualifier",
+			fields: fields{
+				Variadic:   true,
+				Qualifier: "string",
+			},
+			want: "...string",
+		},
+		{
+			name: "Should return the correct go source of the type if the type is variadic and pointer qualifier",
+			fields: fields{
+				Pointer:   true,
+				Variadic:   true,
+				Qualifier: "string",
+			},
+			want: "...*string",
 		},
 		{
 			name: "Should return the correct go source of the type if the type is import qualifier",
@@ -1344,6 +1380,7 @@ func TestType_String(t *testing.T) {
 				RawType:   tt.fields.RawType,
 				Function:  tt.fields.Function,
 				Pointer:   tt.fields.Pointer,
+				Variadic:   tt.fields.Variadic,
 				Qualifier: tt.fields.Qualifier,
 			}
 			if got := tp.String(); got != tt.want {
