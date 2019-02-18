@@ -1171,7 +1171,7 @@ func TestType_Code(t *testing.T) {
 				Variadic:  true,
 				Qualifier: "string",
 			},
-			want: jen.Id("...").Id("string"),
+			want: jen.Op("...").Id("string"),
 		},
 		{
 			name: "Should return the correct jen representation of the type if the type is variadic and pointer",
@@ -1180,7 +1180,7 @@ func TestType_Code(t *testing.T) {
 				Variadic:  true,
 				Qualifier: "string",
 			},
-			want: jen.Id("...").Id("*").Id("string"),
+			want: jen.Op("...").Id("*").Id("string"),
 		},
 		{
 			name: "Should return the correct jen representation of the type if the type is import qualifier",
@@ -1242,6 +1242,7 @@ func TestType_Code(t *testing.T) {
 			tp := &Type{
 				Import:    tt.fields.Import,
 				Function:  tt.fields.Method,
+				Variadic:  tt.fields.Variadic,
 				RawType:   tt.fields.RawType,
 				Pointer:   tt.fields.Pointer,
 				Qualifier: tt.fields.Qualifier,
@@ -1259,7 +1260,7 @@ func TestType_String(t *testing.T) {
 		RawType   *jen.Statement
 		Function  *FunctionType
 		Pointer   bool
-		Variadic   bool
+		Variadic  bool
 		Qualifier string
 	}
 	tests := []struct {
@@ -1285,7 +1286,7 @@ func TestType_String(t *testing.T) {
 		{
 			name: "Should return the correct go source of the type if the type is variadic qualifier",
 			fields: fields{
-				Variadic:   true,
+				Variadic:  true,
 				Qualifier: "string",
 			},
 			want: "...string",
@@ -1294,7 +1295,7 @@ func TestType_String(t *testing.T) {
 			name: "Should return the correct go source of the type if the type is variadic and pointer qualifier",
 			fields: fields{
 				Pointer:   true,
-				Variadic:   true,
+				Variadic:  true,
 				Qualifier: "string",
 			},
 			want: "...*string",
@@ -1380,7 +1381,7 @@ func TestType_String(t *testing.T) {
 				RawType:   tt.fields.RawType,
 				Function:  tt.fields.Function,
 				Pointer:   tt.fields.Pointer,
-				Variadic:   tt.fields.Variadic,
+				Variadic:  tt.fields.Variadic,
 				Qualifier: tt.fields.Qualifier,
 			}
 			if got := tp.String(); got != tt.want {
