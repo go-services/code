@@ -1,8 +1,9 @@
 package code
 
 import (
-	"github.com/dave/jennifer/jen"
 	"strings"
+
+	"github.com/dave/jennifer/jen"
 )
 
 // Code is the interface that all code nodes need to implement.
@@ -191,7 +192,6 @@ type Interface struct {
 	docs []Comment
 }
 
-
 // RawCode represents raw lines of code.
 type RawCode struct {
 	code *jen.Statement
@@ -242,6 +242,7 @@ func PointerTypeOption() TypeOptions {
 		t.Pointer = true
 	}
 }
+
 // VariadicTypeOption marks the type as variadic.
 func VariadicTypeOption() TypeOptions {
 	return func(t *Type) {
@@ -434,7 +435,7 @@ func NewInterface(name string, methods []InterfaceMethod, docs ...Comment) *Inte
 
 func NewRawCode(code *jen.Statement) *RawCode {
 	return &RawCode{
-		code:code,
+		code: code,
 	}
 }
 
@@ -539,7 +540,7 @@ func (t Type) String() string {
 		s := code.GoString()
 		s = strings.TrimPrefix(s, "func _(")
 		s = strings.TrimSuffix(s, ") {}")
-		return  s
+		return s
 	}
 	return codeString(t)
 }
