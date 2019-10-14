@@ -195,6 +195,68 @@ func TestPointerTypeOption(t *testing.T) {
 	}
 }
 
+func TestVariadicTypeOption(t *testing.T) {
+	type args struct {
+		tp Type
+	}
+	tests := []struct {
+		name string
+		args args
+		want Type
+	}{
+		{
+			name: "Should set pointer to true",
+			args: args{
+				tp: NewType("test"),
+			},
+			want: Type{
+				Qualifier: "test",
+				Variadic:  true,
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := VariadicTypeOption()
+			got(&tt.args.tp)
+			if !reflect.DeepEqual(tt.args.tp, tt.want) {
+				t.Errorf("Type = %v, want %v", tt.args.tp, tt.want)
+			}
+		})
+	}
+}
+
+func TestArrayTypeOption(t *testing.T) {
+	type args struct {
+		tp Type
+	}
+	tests := []struct {
+		name string
+		args args
+		want Type
+	}{
+		{
+			name: "Should set pointer to true",
+			args: args{
+				tp: NewType("test"),
+			},
+			want: Type{
+				Qualifier: "test",
+				ArrayType: true,
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := ArrayTypeOption()
+			got(&tt.args.tp)
+			if !reflect.DeepEqual(tt.args.tp, tt.want) {
+				t.Errorf("Type = %v, want %v", tt.args.tp, tt.want)
+			}
+		})
+	}
+}
+
 func TestNewType(t *testing.T) {
 	type args struct {
 		qualifier string
@@ -1142,6 +1204,7 @@ func TestType_Code(t *testing.T) {
 		RawType   *jen.Statement
 		Method    *FunctionType
 		Pointer   bool
+		ArrayType bool
 		Variadic  bool
 		Qualifier string
 	}
@@ -1236,6 +1299,22 @@ func TestType_Code(t *testing.T) {
 			},
 			want: jen.Map(jen.String()).Id("*").Qual("test", "Test"),
 		},
+		{
+			name: "Should return the correct jen representation of a variadic type",
+			fields: fields{
+				Variadic:  true,
+				Qualifier: "Test",
+			},
+			want: jen.Op("...").Id("Test"),
+		},
+		{
+			name: "Should return the correct jen representation of an array type",
+			fields: fields{
+				ArrayType: true,
+				Qualifier: "Test",
+			},
+			want: jen.Index().Id("Test"),
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -1245,6 +1324,7 @@ func TestType_Code(t *testing.T) {
 				Variadic:  tt.fields.Variadic,
 				RawType:   tt.fields.RawType,
 				Pointer:   tt.fields.Pointer,
+				ArrayType: tt.fields.ArrayType,
 				Qualifier: tt.fields.Qualifier,
 			}
 			if got := tp.Code(); !reflect.DeepEqual(got, tt.want) {
@@ -1260,6 +1340,7 @@ func TestType_String(t *testing.T) {
 		RawType   *jen.Statement
 		Function  *FunctionType
 		Pointer   bool
+		ArrayType bool
 		Variadic  bool
 		Qualifier string
 	}
@@ -1323,11 +1404,27 @@ func TestType_String(t *testing.T) {
 			want: "*test.Test",
 		},
 		{
+			name: "Should return the correct go source of the type if the type is array type",
+			fields: fields{
+				ArrayType: true,
+				Qualifier: "Test",
+			},
+			want: "[]Test",
+		},
+		{
 			name: "Should return the correct go source of the type if the type is function type",
 			fields: fields{
 				Function: NewFunctionType(),
 			},
 			want: "func()",
+		},
+		{
+			name: "Should return the correct go source of the type if the type is variadic function type",
+			fields: fields{
+				Variadic: true,
+				Function: NewFunctionType(),
+			},
+			want: "...func()",
 		},
 		{
 			name: "Should return the correct go source of the type if the type is function type pointer",
@@ -1381,6 +1478,7 @@ func TestType_String(t *testing.T) {
 				RawType:   tt.fields.RawType,
 				Function:  tt.fields.Function,
 				Pointer:   tt.fields.Pointer,
+				ArrayType: tt.fields.ArrayType,
 				Variadic:  tt.fields.Variadic,
 				Qualifier: tt.fields.Qualifier,
 			}
