@@ -78,6 +78,12 @@ type Type struct {
 	// if method is set all other type parameters besides the pointer are ignored.
 	Function *FunctionType
 
+	// MapType is used if the type is a map.
+	MapType *struct {
+		Key   Type
+		Value Type
+	}
+
 	// RawType is used to specify complex types (e.x map[string]*test.SomeStruct)
 	// if the raw type is not nil all the other parameters will be ignored.
 	RawType *jen.Statement
@@ -254,6 +260,19 @@ func VariadicTypeOption() TypeOptions {
 func ArrayTypeOption() TypeOptions {
 	return func(t *Type) {
 		t.ArrayType = true
+	}
+}
+
+// MapTypeOption sets the map type.
+func MapTypeOption(key Type, value Type) TypeOptions {
+	return func(t *Type) {
+		t.MapType = &struct {
+			Key   Type
+			Value Type
+		}{
+			Key:   key,
+			Value: value,
+		}
 	}
 }
 
