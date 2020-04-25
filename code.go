@@ -91,6 +91,9 @@ type Type struct {
 	// Pointer tells if the type is a pointer.
 	Pointer bool
 
+	// PointerArrayType tells if the array has a pointer type.
+	PointerArrayType bool
+
 	// ArrayType tells if the type is an array.
 	ArrayType bool
 
@@ -510,6 +513,9 @@ func (t Type) Code() *jen.Statement {
 	}
 	if t.ArrayType {
 		code.Index()
+		if t.PointerArrayType {
+			code.Id("*")
+		}
 	}
 	if t.Function != nil {
 		code.Add(t.Function.Code())
@@ -547,14 +553,7 @@ func (t Type) String() string {
 		}
 		return s
 	}
-	if t.ArrayType {
-		code := jen.Func().Id("_").Params(t.Code()).Block()
-		s := code.GoString()
-		s = strings.TrimPrefix(s, "func _(")
-		s = strings.TrimSuffix(s, ") {}")
-		return s
-	}
-	if t.Variadic {
+	if t.ArrayType || t.Variadic {
 		code := jen.Func().Id("_").Params(t.Code()).Block()
 		s := code.GoString()
 		s = strings.TrimPrefix(s, "func _(")

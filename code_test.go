@@ -1341,6 +1341,7 @@ func TestType_String(t *testing.T) {
 		Function  *FunctionType
 		Pointer   bool
 		ArrayType bool
+		PointerArrayType bool
 		Variadic  bool
 		Qualifier string
 	}
@@ -1412,6 +1413,25 @@ func TestType_String(t *testing.T) {
 			want: "[]Test",
 		},
 		{
+			name: "Should return the correct go source of the type if the type is array type and has pointer type",
+			fields: fields{
+				ArrayType: true,
+				PointerArrayType: true,
+				Qualifier: "Test",
+			},
+			want: "[]*Test",
+		},
+		{
+			name: "Should return the correct go source of the type if the type is a pointer array type and has pointer type",
+			fields: fields{
+				Pointer: true,
+				ArrayType: true,
+				PointerArrayType: true,
+				Qualifier: "Test",
+			},
+			want: "*[]*Test",
+		},
+		{
 			name: "Should return the correct go source of the type if the type is function type",
 			fields: fields{
 				Function: NewFunctionType(),
@@ -1478,6 +1498,7 @@ func TestType_String(t *testing.T) {
 				RawType:   tt.fields.RawType,
 				Function:  tt.fields.Function,
 				Pointer:   tt.fields.Pointer,
+				PointerArrayType: tt.fields.PointerArrayType,
 				ArrayType: tt.fields.ArrayType,
 				Variadic:  tt.fields.Variadic,
 				Qualifier: tt.fields.Qualifier,
