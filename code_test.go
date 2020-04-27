@@ -1259,6 +1259,7 @@ func TestType_Code(t *testing.T) {
 		Method    *FunctionType
 		Pointer   bool
 		ArrayType *Type
+		StructType *StructType
 		MapType   *struct {
 			Key   Type
 			Value Type
@@ -1415,6 +1416,13 @@ func TestType_Code(t *testing.T) {
 			},
 			want: jen.Map(jen.Id("string")).Add(jen.Index().Add(jen.Map(jen.String()).Add(jen.Id("ast").Dot("File")))),
 		},
+		{
+			name: "Should return the correct jen representation of an struct type",
+			fields: fields{
+				StructType:NewStructType(),
+			},
+			want: jen.Add(jen.Struct()),
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -1426,6 +1434,7 @@ func TestType_Code(t *testing.T) {
 				Pointer:   tt.fields.Pointer,
 				ArrayType: tt.fields.ArrayType,
 				MapType:   tt.fields.MapType,
+				Struct:   tt.fields.StructType,
 				Qualifier: tt.fields.Qualifier,
 			}
 			if got := tp.Code(); !reflect.DeepEqual(got, tt.want) {
@@ -1442,6 +1451,7 @@ func TestType_String(t *testing.T) {
 		Function  *FunctionType
 		Pointer   bool
 		ArrayType *Type
+		StructType *StructType
 		MapType *struct {
 			Key   Type
 			Value Type
@@ -1627,6 +1637,20 @@ func TestType_String(t *testing.T) {
 			},
 			want: "map[string][]map[string]ast.File",
 		},
+		{
+			name: "Should return the correct string of an struct type",
+			fields: fields{
+				StructType:NewStructType(),
+			},
+			want: "struct{}",
+		},
+		{
+			name: "Should return the correct string of an struct type with fields",
+			fields: fields{
+				StructType:NewStructType(*NewStructField("A", NewType("string"))),
+			},
+			want: "struct {\n\tA string\n}",
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -1636,6 +1660,7 @@ func TestType_String(t *testing.T) {
 				Function:  tt.fields.Function,
 				Pointer:   tt.fields.Pointer,
 				ArrayType: tt.fields.ArrayType,
+				Struct: tt.fields.StructType,
 				MapType: tt.fields.MapType,
 				Variadic:  tt.fields.Variadic,
 				Qualifier: tt.fields.Qualifier,
@@ -4141,6 +4166,133 @@ func TestRawCode_String(t *testing.T) {
 			}
 			if got := c.String(); got != tt.want {
 				t.Errorf("RawCode.String() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestStructType_AddDocs(t *testing.T) {
+	type args struct {
+		in0 []Comment
+	}
+	tests := []struct {
+		name string
+		s    StructType
+		args args
+	}{
+		{
+			name: "Should do nothing",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+		})
+	}
+}
+
+func TestStructType_Code(t *testing.T) {
+	tests := []struct {
+		name string
+		s    StructType
+		want *jen.Statement
+	}{
+		{
+			name: "Should return the correct jen representation of a struct type",
+			s: StructType{},
+			want: jen.Struct(),
+		},
+		{
+			name: "Should return the correct jen representation of a struct type with fields",
+			s: StructType{Fields: []StructField{*NewStructField("test", NewType("string"))},
+			},
+			want: jen.Struct(NewStructField("test", NewType("string")).Code()),
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.s.Code(); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("Code() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestStructType_Docs(t *testing.T) {
+	tests := []struct {
+		name string
+		s    StructType
+		want []Comment
+	}{
+		{
+			name:"Should do nothing",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.s.Docs(); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("Docs() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestStructType_String(t *testing.T) {
+	tests := []struct {
+		name string
+		s    StructType
+		want string
+	}{
+		{
+			name: "Should return the correct jen representation of a struct type",
+			s: StructType{
+			},
+			want: "struct{}",
+		},
+		{
+			name: "Should return the correct jen representation of a struct type with fields",
+			s: StructType{
+				Fields: []StructField{*NewStructField("test", NewType("string"))},
+			},
+			want: "struct {\n\ttest string\n}",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.s.String(); got != tt.want {
+				t.Errorf("String() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestStructTypeOption(t *testing.T) {
+	type args struct {
+		tp Type
+		s  StructType
+	}
+	tests := []struct {
+		name string
+		args args
+		want Type
+	}{
+		{
+			name: "Should add the struct type to the type",
+			args: args{
+				tp: NewType(""),
+				s:  *NewStructType(),
+			},
+			want: Type{
+				Qualifier: "",
+				Struct: NewStructType(),
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := StructTypeOption(tt.args.s)
+			got(&tt.args.tp)
+			if !reflect.DeepEqual(tt.args.tp, tt.want) {
+				t.Errorf("Type = %v, want %v", tt.args.tp, tt.want)
 			}
 		})
 	}

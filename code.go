@@ -52,6 +52,9 @@ type TypeOptions func(t *Type)
 // FunctionType is used in Type to specify a method type (e.x func(sting) int).
 type FunctionType Function
 
+// StructType is used in Type to specify a struct type (e.x struct{}).
+type StructType Struct
+
 // Type represents a type e.x `string`, `context.Context`...
 // the type is represented by 2 main parameters.
 //
@@ -83,6 +86,11 @@ type Type struct {
 		Key   Type
 		Value Type
 	}
+
+	// Struct is used for inline struct types
+	// e.x
+	//  var a struct{}
+	Struct *StructType
 
 	// RawType is used to specify complex types (e.x map[string]*test.SomeStruct)
 	// if the raw type is not nil all the other parameters will be ignored.
@@ -275,6 +283,12 @@ func MapTypeOption(key Type, value Type) TypeOptions {
 		}
 	}
 }
+// StructTypeOption sets the map type.
+func StructTypeOption(st StructType) TypeOptions {
+	return func(t *Type) {
+		t.Struct = &st
+	}
+}
 
 // NewType creates the type with the qualifier and options given.
 //
@@ -369,6 +383,12 @@ func NewStruct(name string, docs ...Comment) *Struct {
 	return &Struct{
 		Name: name,
 		docs: docs,
+	}
+}
+// NewStructType creates a new struct type with the given fields
+func NewStructType(fields ...StructField) *StructType {
+	return &StructType{
+		Fields: fields,
 	}
 }
 
@@ -520,6 +540,10 @@ func (t Type) Code() *jen.Statement {
 		code.Add(t.Function.Code())
 		return code
 	}
+	if t.Struct != nil {
+		code.Add(t.Struct.Code())
+		return code
+	}
 	if t.Import != nil {
 		if t.Import.Alias != "" {
 			code.Id(t.Import.Alias).Dot(t.Qualifier)
@@ -552,11 +576,12 @@ func (t Type) String() string {
 		}
 		return s
 	}
-	if t.ArrayType != nil || t.Variadic || t.MapType != nil {
+	if t.ArrayType != nil || t.Variadic || t.MapType != nil || t.Struct != nil {
 		code := jen.Func().Id("_").Params(t.Code()).Block()
 		s := code.GoString()
 		s = strings.TrimPrefix(s, "func _(")
 		s = strings.TrimSuffix(s, ") {}")
+		s = strings.TrimSuffix(s, ") {\n}")
 		return s
 	}
 	return codeString(t)
@@ -689,6 +714,35 @@ func (m *FunctionType) Docs() []Comment {
 // AddDocs does nothing for the function type code.
 // We only implement this so we implement the Code interface.
 func (m *FunctionType) AddDocs(_ ...Comment) {}
+
+// Code returns the jen representation of the struct type.
+func (s *StructType) Code() *jen.Statement {
+	code := &jen.Statement{}
+	return code.Struct(fieldList(s.Fields)...)
+}
+
+// String returns the go code string of the struct type.
+// because the renderer does not render only struct types we create a dummy structure to add the struct type field to
+// than we remove everything besides the struct type.
+func (s *StructType) String() string {
+	//// Hack to get the reader to not panic in function types
+	code := jen.Func().Id("_").Params(s.Code()).Block()
+	str := code.GoString()
+	str = strings.TrimPrefix(str, "func _(")
+	str = strings.TrimSuffix(str, ") {}")
+	str = strings.TrimSuffix(str, ") {\n}")
+	//// -----
+	return str
+}
+
+// Docs does nothing for the struct type code.
+func (s *StructType) Docs() []Comment {
+	return nil
+}
+
+// AddDocs does nothing for the struct type code.
+// We only implement this so we implement the Code interface.
+func (s *StructType) AddDocs(_ ...Comment) {}
 
 // Code returns the jen representation of the function.
 func (f *Function) Code() *jen.Statement {
