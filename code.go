@@ -91,11 +91,8 @@ type Type struct {
 	// Pointer tells if the type is a pointer.
 	Pointer bool
 
-	// PointerArrayType tells if the array has a pointer type.
-	PointerArrayType bool
-
 	// ArrayType tells if the type is an array.
-	ArrayType bool
+	ArrayType *Type
 
 	// Variadic tells if the type is used for variadic functions
 	Variadic bool
@@ -232,9 +229,9 @@ func NewComment(s string) Comment {
 }
 
 // ImportTypeOption adds the given import to the type.
-func ImportTypeOption(i *Import) TypeOptions {
+func ImportTypeOption(i Import) TypeOptions {
 	return func(t *Type) {
-		t.Import = i
+		t.Import = &i
 	}
 }
 
@@ -252,13 +249,6 @@ func PointerTypeOption() TypeOptions {
 	}
 }
 
-// PointerArrayTypeOption marks the type of an array as a pointer.
-func PointerArrayTypeOption() TypeOptions {
-	return func(t *Type) {
-		t.PointerArrayType = true
-	}
-}
-
 // VariadicTypeOption marks the type as variadic.
 func VariadicTypeOption() TypeOptions {
 	return func(t *Type) {
@@ -267,9 +257,9 @@ func VariadicTypeOption() TypeOptions {
 }
 
 // ArrayTypeOption marks the type as variadic.
-func ArrayTypeOption() TypeOptions {
+func ArrayTypeOption(tp Type) TypeOptions {
 	return func(t *Type) {
-		t.ArrayType = true
+		t.ArrayType = &tp
 	}
 }
 
@@ -518,11 +508,13 @@ func (t Type) Code() *jen.Statement {
 	if t.Pointer {
 		code.Id("*")
 	}
-	if t.ArrayType {
-		code.Index()
-		if t.PointerArrayType {
-			code.Id("*")
-		}
+	if t.ArrayType != nil {
+		code.Index().Add(t.ArrayType.Code())
+		return code
+	}
+	if t.MapType != nil {
+		code.Map(t.MapType.Key.Code()).Add(t.MapType.Value.Code())
+		return code
 	}
 	if t.Function != nil {
 		code.Add(t.Function.Code())
@@ -560,7 +552,7 @@ func (t Type) String() string {
 		}
 		return s
 	}
-	if t.ArrayType || t.Variadic {
+	if t.ArrayType != nil || t.Variadic || t.MapType != nil {
 		code := jen.Func().Id("_").Params(t.Code()).Block()
 		s := code.GoString()
 		s = strings.TrimPrefix(s, "func _(")

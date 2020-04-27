@@ -100,7 +100,7 @@ func TestNewComment(t *testing.T) {
 
 func TestImportTypeOption(t *testing.T) {
 	type args struct {
-		i  *Import
+		i  Import
 		tp Type
 	}
 	tests := []struct {
@@ -111,7 +111,7 @@ func TestImportTypeOption(t *testing.T) {
 		{
 			name: "Should add the import to the type",
 			args: args{
-				i:  NewImport("test", "test"),
+				i:  *NewImport("test", "test"),
 				tp: NewType("Test"),
 			},
 			want: Type{
@@ -228,7 +228,8 @@ func TestVariadicTypeOption(t *testing.T) {
 
 func TestArrayTypeOption(t *testing.T) {
 	type args struct {
-		tp Type
+		tp      Type
+		arrType Type
 	}
 	tests := []struct {
 		name string
@@ -238,48 +239,21 @@ func TestArrayTypeOption(t *testing.T) {
 		{
 			name: "Should set pointer to true",
 			args: args{
-				tp: NewType("test"),
+				tp:      NewType("test"),
+				arrType: NewType("string"),
 			},
 			want: Type{
 				Qualifier: "test",
-				ArrayType: true,
+				ArrayType: func() *Type {
+					t := NewType("string")
+					return &t
+				}(),
 			},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := ArrayTypeOption()
-			got(&tt.args.tp)
-			if !reflect.DeepEqual(tt.args.tp, tt.want) {
-				t.Errorf("Type = %v, want %v", tt.args.tp, tt.want)
-			}
-		})
-	}
-}
-
-func TestPointerArrayTypeOption(t *testing.T) {
-	type args struct {
-		tp Type
-	}
-	tests := []struct {
-		name string
-		args args
-		want Type
-	}{
-		{
-			name: "Should set pointer to true",
-			args: args{
-				tp: NewType("test"),
-			},
-			want: Type{
-				Qualifier:        "test",
-				PointerArrayType: true,
-			},
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got := PointerArrayTypeOption()
+			got := ArrayTypeOption(tt.args.arrType)
 			got(&tt.args.tp)
 			if !reflect.DeepEqual(tt.args.tp, tt.want) {
 				t.Errorf("Type = %v, want %v", tt.args.tp, tt.want)
@@ -362,7 +336,7 @@ func TestNewType(t *testing.T) {
 				qualifier: "test",
 				options: []TypeOptions{
 					PointerTypeOption(),
-					ImportTypeOption(NewImport("test", "test")),
+					ImportTypeOption(*NewImport("test", "test")),
 				},
 			},
 			want: Type{
@@ -1284,7 +1258,11 @@ func TestType_Code(t *testing.T) {
 		RawType   *jen.Statement
 		Method    *FunctionType
 		Pointer   bool
-		ArrayType bool
+		ArrayType *Type
+		MapType   *struct {
+			Key   Type
+			Value Type
+		}
 		Variadic  bool
 		Qualifier string
 	}
@@ -1390,10 +1368,52 @@ func TestType_Code(t *testing.T) {
 		{
 			name: "Should return the correct jen representation of an array type",
 			fields: fields{
-				ArrayType: true,
-				Qualifier: "Test",
+				ArrayType: func() *Type {
+					t := NewType("string")
+					return &t
+				}(),
 			},
-			want: jen.Index().Id("Test"),
+			want: jen.Index().Add(jen.Id("string")),
+		},
+		{
+			name: "Should return the correct jen representation of an map type",
+			fields: fields{
+				MapType: &struct {
+					Key   Type
+					Value Type
+				}{
+					Key:   NewType("string"),
+					Value: NewType("string"),
+				},
+			},
+			want: jen.Map(jen.Id("string")).Add(jen.Id("string")),
+		},
+		{
+			name: "Should return the correct jen representation of complex map type",
+			fields: fields{
+				MapType: &struct {
+					Key   Type
+					Value Type
+				}{
+					// map[string][]map[sting]ast.File
+					Key: NewType("string"),
+					Value: NewType(
+						"",
+						ArrayTypeOption(
+							NewType(
+								"",
+								MapTypeOption(
+									NewType("string"),
+									NewType("File",
+										ImportTypeOption(*NewImport("ast", "go/ast")),
+									),
+								),
+							),
+						),
+					),
+				},
+			},
+			want: jen.Map(jen.Id("string")).Add(jen.Index().Add(jen.Map(jen.String()).Add(jen.Id("ast").Dot("File")))),
 		},
 	}
 	for _, tt := range tests {
@@ -1405,6 +1425,7 @@ func TestType_Code(t *testing.T) {
 				RawType:   tt.fields.RawType,
 				Pointer:   tt.fields.Pointer,
 				ArrayType: tt.fields.ArrayType,
+				MapType:   tt.fields.MapType,
 				Qualifier: tt.fields.Qualifier,
 			}
 			if got := tp.Code(); !reflect.DeepEqual(got, tt.want) {
@@ -1416,14 +1437,17 @@ func TestType_Code(t *testing.T) {
 
 func TestType_String(t *testing.T) {
 	type fields struct {
-		Import           *Import
-		RawType          *jen.Statement
-		Function         *FunctionType
-		Pointer          bool
-		ArrayType        bool
-		PointerArrayType bool
-		Variadic         bool
-		Qualifier        string
+		Import    *Import
+		RawType   *jen.Statement
+		Function  *FunctionType
+		Pointer   bool
+		ArrayType *Type
+		MapType *struct {
+			Key   Type
+			Value Type
+		}
+		Variadic  bool
+		Qualifier string
 	}
 	tests := []struct {
 		name   string
@@ -1487,27 +1511,33 @@ func TestType_String(t *testing.T) {
 		{
 			name: "Should return the correct go source of the type if the type is array type",
 			fields: fields{
-				ArrayType: true,
-				Qualifier: "Test",
+				ArrayType: func() *Type {
+					t := NewType("Test")
+					return &t
+				}(),
 			},
 			want: "[]Test",
 		},
 		{
 			name: "Should return the correct go source of the type if the type is array type and has pointer type",
 			fields: fields{
-				ArrayType:        true,
-				PointerArrayType: true,
-				Qualifier:        "Test",
+				ArrayType: func() *Type {
+					t := NewType("Test", PointerTypeOption())
+					return &t
+				}(),
+				Qualifier: "Test",
 			},
 			want: "[]*Test",
 		},
 		{
 			name: "Should return the correct go source of the type if the type is a pointer array type and has pointer type",
 			fields: fields{
-				Pointer:          true,
-				ArrayType:        true,
-				PointerArrayType: true,
-				Qualifier:        "Test",
+				Pointer: true,
+				ArrayType: func() *Type {
+					t := NewType("Test", PointerTypeOption())
+					return &t
+				}(),
+				Qualifier: "Test",
 			},
 			want: "*[]*Test",
 		},
@@ -1570,18 +1600,45 @@ func TestType_String(t *testing.T) {
 			},
 			want: "map[string]*test.Test",
 		},
+		{
+			name: "Should return the correct jen representation of complex map type",
+			fields: fields{
+				MapType: &struct {
+					Key   Type
+					Value Type
+				}{
+					// map[string][]map[sting]ast.File
+					Key: NewType("string"),
+					Value: NewType(
+						"",
+						ArrayTypeOption(
+							NewType(
+								"",
+								MapTypeOption(
+									NewType("string"),
+									NewType("File",
+										ImportTypeOption(*NewImport("ast", "go/ast")),
+									),
+								),
+							),
+						),
+					),
+				},
+			},
+			want: "map[string][]map[string]ast.File",
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			tp := &Type{
-				Import:           tt.fields.Import,
-				RawType:          tt.fields.RawType,
-				Function:         tt.fields.Function,
-				Pointer:          tt.fields.Pointer,
-				PointerArrayType: tt.fields.PointerArrayType,
-				ArrayType:        tt.fields.ArrayType,
-				Variadic:         tt.fields.Variadic,
-				Qualifier:        tt.fields.Qualifier,
+				Import:    tt.fields.Import,
+				RawType:   tt.fields.RawType,
+				Function:  tt.fields.Function,
+				Pointer:   tt.fields.Pointer,
+				ArrayType: tt.fields.ArrayType,
+				MapType: tt.fields.MapType,
+				Variadic:  tt.fields.Variadic,
+				Qualifier: tt.fields.Qualifier,
 			}
 			if got := tp.String(); got != tt.want {
 				t.Errorf("Type.String() = %v, want %v", got, tt.want)
@@ -2031,7 +2088,7 @@ func TestParameter_String(t *testing.T) {
 									NewType(
 										"Test",
 										PointerTypeOption(),
-										ImportTypeOption(NewImport("abc", "test/abc")),
+										ImportTypeOption(*NewImport("abc", "test/abc")),
 									),
 								),
 							),
