@@ -252,6 +252,13 @@ func PointerTypeOption() TypeOptions {
 	}
 }
 
+// PointerArrayTypeOption marks the type of an array as a pointer.
+func PointerArrayTypeOption() TypeOptions {
+	return func(t *Type) {
+		t.PointerArrayType = true
+	}
+}
+
 // VariadicTypeOption marks the type as variadic.
 func VariadicTypeOption() TypeOptions {
 	return func(t *Type) {

@@ -257,6 +257,86 @@ func TestArrayTypeOption(t *testing.T) {
 	}
 }
 
+func TestPointerArrayTypeOption(t *testing.T) {
+	type args struct {
+		tp Type
+	}
+	tests := []struct {
+		name string
+		args args
+		want Type
+	}{
+		{
+			name: "Should set pointer to true",
+			args: args{
+				tp: NewType("test"),
+			},
+			want: Type{
+				Qualifier:        "test",
+				PointerArrayType: true,
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := PointerArrayTypeOption()
+			got(&tt.args.tp)
+			if !reflect.DeepEqual(tt.args.tp, tt.want) {
+				t.Errorf("Type = %v, want %v", tt.args.tp, tt.want)
+			}
+		})
+	}
+}
+
+func TestMapTypeOption(t *testing.T) {
+	type args struct {
+		tp    Type
+		key   Type
+		value Type
+	}
+	tests := []struct {
+		name string
+		args args
+		want Type
+	}{
+		{
+			name: "Should set pointer to true",
+			args: args{
+				tp: NewType("test"),
+				key: Type{
+					Qualifier: "string",
+				},
+				value: Type{
+					Qualifier: "string",
+				},
+			},
+			want: Type{
+				Qualifier: "test",
+				MapType: &struct {
+					Key   Type
+					Value Type
+				}{
+					Key: Type{
+						Qualifier: "string",
+					},
+					Value: Type{
+						Qualifier: "string",
+					},
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := MapTypeOption(tt.args.key, tt.args.value)
+			got(&tt.args.tp)
+			if !reflect.DeepEqual(tt.args.tp, tt.want) {
+				t.Errorf("Type = %v, want %v", tt.args.tp, tt.want)
+			}
+		})
+	}
+}
+
 func TestNewType(t *testing.T) {
 	type args struct {
 		qualifier string
@@ -1336,14 +1416,14 @@ func TestType_Code(t *testing.T) {
 
 func TestType_String(t *testing.T) {
 	type fields struct {
-		Import    *Import
-		RawType   *jen.Statement
-		Function  *FunctionType
-		Pointer   bool
-		ArrayType bool
+		Import           *Import
+		RawType          *jen.Statement
+		Function         *FunctionType
+		Pointer          bool
+		ArrayType        bool
 		PointerArrayType bool
-		Variadic  bool
-		Qualifier string
+		Variadic         bool
+		Qualifier        string
 	}
 	tests := []struct {
 		name   string
@@ -1415,19 +1495,19 @@ func TestType_String(t *testing.T) {
 		{
 			name: "Should return the correct go source of the type if the type is array type and has pointer type",
 			fields: fields{
-				ArrayType: true,
+				ArrayType:        true,
 				PointerArrayType: true,
-				Qualifier: "Test",
+				Qualifier:        "Test",
 			},
 			want: "[]*Test",
 		},
 		{
 			name: "Should return the correct go source of the type if the type is a pointer array type and has pointer type",
 			fields: fields{
-				Pointer: true,
-				ArrayType: true,
+				Pointer:          true,
+				ArrayType:        true,
 				PointerArrayType: true,
-				Qualifier: "Test",
+				Qualifier:        "Test",
 			},
 			want: "*[]*Test",
 		},
@@ -1494,14 +1574,14 @@ func TestType_String(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			tp := &Type{
-				Import:    tt.fields.Import,
-				RawType:   tt.fields.RawType,
-				Function:  tt.fields.Function,
-				Pointer:   tt.fields.Pointer,
+				Import:           tt.fields.Import,
+				RawType:          tt.fields.RawType,
+				Function:         tt.fields.Function,
+				Pointer:          tt.fields.Pointer,
 				PointerArrayType: tt.fields.PointerArrayType,
-				ArrayType: tt.fields.ArrayType,
-				Variadic:  tt.fields.Variadic,
-				Qualifier: tt.fields.Qualifier,
+				ArrayType:        tt.fields.ArrayType,
+				Variadic:         tt.fields.Variadic,
+				Qualifier:        tt.fields.Qualifier,
 			}
 			if got := tp.String(); got != tt.want {
 				t.Errorf("Type.String() = %v, want %v", got, tt.want)
