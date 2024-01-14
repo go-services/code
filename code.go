@@ -570,7 +570,7 @@ func (t Type) Code() *jen.Statement {
 
 // ImportAliases returns the import aliases of the type.
 func (t Type) ImportAliases() []ImportAlias {
-	if t.Import.Alias != "" {
+	if t.Import != nil && t.Import.Alias != "" {
 		return []ImportAlias{
 			NewImportAlias(t.Import.Alias, t.Import.Path),
 		}
