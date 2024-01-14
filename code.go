@@ -465,6 +465,12 @@ func NewFunctionType(options ...FunctionOptions) *FunctionType {
 	return &mt
 }
 
+func FunctionTypeName(name string) FunctionOptions {
+	return func(f *Function) {
+		f.Name = name
+	}
+}
+
 // NewInterfaceMethod creates a new interface method with the given name and options.
 func NewInterfaceMethod(name string, options ...FunctionOptions) InterfaceMethod {
 	m := NewFunction(name, options...)
