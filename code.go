@@ -865,6 +865,11 @@ func (s *StructField) Docs() []Comment {
 	return s.docs
 }
 
+// ImportAliases returns the import aliases of the structure field.
+func (s *StructField) ImportAliases() []ImportAlias {
+	return s.Type.ImportAliases()
+}
+
 // Code returns the jen representation of the structure.
 func (s *Struct) Code() *jen.Statement {
 	code := &jen.Statement{}
@@ -891,7 +896,7 @@ func (s *Struct) AddDocs(docs ...Comment) {
 func (s *Struct) ImportAliases() []ImportAlias {
 	var aliases []ImportAlias
 	for _, p := range s.Fields {
-		aliases = append(aliases, p.Type.ImportAliases()...)
+		aliases = append(aliases, p.ImportAliases()...)
 	}
 	return aliases
 }
