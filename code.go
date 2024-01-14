@@ -19,6 +19,10 @@ type Code interface {
 
 	// AddDocs adds documentation comments to the code.
 	AddDocs(docs ...Comment)
+
+	// ImportAliases sets the import aliases of the code.
+
+	ImportAliases() []ImportAlias
 }
 
 // Import represents an import
@@ -40,13 +44,15 @@ type Comment string
 
 // TypeOptions is used when you call NewType, it is a handy way to allow multiple configurations
 // for a type.
-//   tp:= NewType("string", PointerTypeOption())
+//
+//	tp:= NewType("string", PointerTypeOption())
+//
 // This would give you a type of pointer string.
 // You can use many build in type option functions like:
 //
-// 	- ImportTypeOption(i *Import) TypeOptions
-// 	- FunctionTypeOption(m *FunctionType) TypeOptions
-// 	- PointerTypeOption() TypeOptions
+//   - ImportTypeOption(i *Import) TypeOptions
+//   - FunctionTypeOption(m *FunctionType) TypeOptions
+//   - PointerTypeOption() TypeOptions
 type TypeOptions func(t *Type)
 
 // FunctionType is used in Type to specify a method type (e.x func(sting) int).
@@ -58,14 +64,15 @@ type StructType Struct
 // Type represents a type e.x `string`, `context.Context`...
 // the type is represented by 2 main parameters.
 //
-//	1) The Import  e.x `context`
+//  1. The Import  e.x `context`
 //
-//		Import = &Import {
-//			Path: "context"
-//		}
+//     Import = &Import {
+//     Path: "context"
+//     }
 //
-//	2) The Qualifier e.x `Context`
-// 		Qualifier = "Context"
+//  2. The Qualifier e.x `Context`
+//     Qualifier = "Context"
+//
 // this would give you the representation of `context.Context`.
 type Type struct {
 	// Import specifies the import of the type, it is used so we know how to call jen.Qual.
@@ -283,6 +290,7 @@ func MapTypeOption(key Type, value Type) TypeOptions {
 		}
 	}
 }
+
 // StructTypeOption sets the map type.
 func StructTypeOption(st StructType) TypeOptions {
 	return func(t *Type) {
@@ -292,12 +300,12 @@ func StructTypeOption(st StructType) TypeOptions {
 
 // NewType creates the type with the qualifier and options given.
 //
-// Options are used so we can create a simple type like `string` and complex types
+// # Options are used so we can create a simple type like `string` and complex types
 //
 // Code has some build in type options that can be used
-//	- ImportTypeOption(i *Import) TypeOptions
-//	- FunctionTypeOption(m *FunctionType) TypeOptions
-//	- PointerTypeOption() TypeOptions
+//   - ImportTypeOption(i *Import) TypeOptions
+//   - FunctionTypeOption(m *FunctionType) TypeOptions
+//   - PointerTypeOption() TypeOptions
 func NewType(qualifier string, options ...TypeOptions) Type {
 	tp := Type{
 		Qualifier: qualifier,
@@ -385,6 +393,7 @@ func NewStruct(name string, docs ...Comment) *Struct {
 		docs: docs,
 	}
 }
+
 // NewStructType creates a new struct type with the given fields
 func NewStructType(fields ...StructField) *StructType {
 	return &StructType{
@@ -497,6 +506,10 @@ func (c *RawCode) String() string {
 	return codeString(c)
 }
 
+func (c *RawCode) ImportAliases() []ImportAlias {
+	return nil
+}
+
 // Code returns the jen representation of the comment.
 func (c Comment) Code() *jen.Statement {
 	return jen.Comment(string(c))
@@ -515,6 +528,10 @@ func (c Comment) String() string {
 // AddDocs does nothing for the comment code.
 // We only implement this so we implement the Code interface.
 func (c Comment) AddDocs(_ ...Comment) {}
+
+func (c Comment) ImportAliases() []ImportAlias {
+	return nil
+}
 
 // Code returns the jen representation of the the type.
 func (t Type) Code() *jen.Statement {
@@ -545,14 +562,20 @@ func (t Type) Code() *jen.Statement {
 		return code
 	}
 	if t.Import != nil {
-		if t.Import.Alias != "" {
-			code.Id(t.Import.Alias).Dot(t.Qualifier)
-			return code
-		}
 		code.Qual(t.Import.Path, t.Qualifier)
 		return code
 	}
 	return code.Id(t.Qualifier)
+}
+
+// ImportAliases returns the import aliases of the type.
+func (t Type) ImportAliases() []ImportAlias {
+	if t.Import.Alias != "" {
+		return []ImportAlias{
+			NewImportAlias(t.Import.Alias, t.Import.Path),
+		}
+	}
+	return nil
 }
 
 // String returns the go code string of the type,
@@ -607,6 +630,11 @@ func (v *Var) Code() *jen.Statement {
 	return code
 }
 
+// ImportAliases returns the import aliases of the variable.
+func (v *Var) ImportAliases() []ImportAlias {
+	return v.Type.ImportAliases()
+}
+
 // String returns the go code string of the variable.
 func (v *Var) String() string {
 	return codeString(v)
@@ -648,6 +676,11 @@ func (c *Const) Docs() []Comment {
 // AddDocs adds a list of documentation strings to the constant.
 func (c *Const) AddDocs(docs ...Comment) {
 	c.docs = append(c.docs, docs...)
+}
+
+// ImportAliases returns the import aliases of the constant.
+func (c *Const) ImportAliases() []ImportAlias {
+	return c.Type.ImportAliases()
 }
 
 // Code returns the jen representation of the parameter.
@@ -775,6 +808,18 @@ func (f *Function) String() string {
 	return codeString(f)
 }
 
+// ImportAliases returns the import aliases of the function.
+func (f *Function) ImportAliases() []ImportAlias {
+	var aliases []ImportAlias
+	for _, p := range f.Params {
+		aliases = append(aliases, p.Type.ImportAliases()...)
+	}
+	for _, p := range f.Results {
+		aliases = append(aliases, p.Type.ImportAliases()...)
+	}
+	return aliases
+}
+
 // AddStringBody adds raw string code to the body of the function.
 func (f *Function) AddStringBody(s string) {
 	f.Body = append(f.Body, jen.Id(s))
@@ -842,6 +887,15 @@ func (s *Struct) AddDocs(docs ...Comment) {
 	s.docs = append(s.docs, docs...)
 }
 
+// ImportAliases returns the import aliases of the structure.
+func (s *Struct) ImportAliases() []ImportAlias {
+	var aliases []ImportAlias
+	for _, p := range s.Fields {
+		aliases = append(aliases, p.Type.ImportAliases()...)
+	}
+	return aliases
+}
+
 // Code returns the jen representation of the interface method.
 func (m *InterfaceMethod) Code() *jen.Statement {
 	code := &jen.Statement{}
@@ -879,6 +933,18 @@ func (m *InterfaceMethod) AddDocs(docs ...Comment) {
 	m.docs = append(m.docs, docs...)
 }
 
+// ImportAliases returns the import aliases of the interface method.
+func (m *InterfaceMethod) ImportAliases() []ImportAlias {
+	var aliases []ImportAlias
+	for _, p := range m.Params {
+		aliases = append(aliases, p.Type.ImportAliases()...)
+	}
+	for _, p := range m.Results {
+		aliases = append(aliases, p.Type.ImportAliases()...)
+	}
+	return aliases
+}
+
 // Code returns the jen representation of the interface.
 func (i *Interface) Code() *jen.Statement {
 	code := &jen.Statement{}
@@ -913,6 +979,15 @@ func (i *Interface) AddDocs(docs ...Comment) {
 // AddMethod a method to the method list
 func (i *Interface) AddMethod(m InterfaceMethod) {
 	i.Methods = append(i.Methods, m)
+}
+
+// ImportAliases returns the import aliases of the interface.
+func (i *Interface) ImportAliases() []ImportAlias {
+	var aliases []ImportAlias
+	for _, m := range i.Methods {
+		aliases = append(aliases, m.ImportAliases()...)
+	}
+	return aliases
 }
 
 // Set is used to set an existing or new field tag.

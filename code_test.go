@@ -1254,13 +1254,13 @@ func TestComment_AddDocs(t *testing.T) {
 
 func TestType_Code(t *testing.T) {
 	type fields struct {
-		Import    *Import
-		RawType   *jen.Statement
-		Method    *FunctionType
-		Pointer   bool
-		ArrayType *Type
+		Import     *Import
+		RawType    *jen.Statement
+		Method     *FunctionType
+		Pointer    bool
+		ArrayType  *Type
 		StructType *StructType
-		MapType   *struct {
+		MapType    *struct {
 			Key   Type
 			Value Type
 		}
@@ -1323,7 +1323,7 @@ func TestType_Code(t *testing.T) {
 				},
 				Qualifier: "Test",
 			},
-			want: jen.Id("hello").Dot("Test"),
+			want: jen.Qual("test/test/test", "Test"),
 		},
 		{
 			name: "Should return the correct jen representation of the type if the type is pointer import qualifier",
@@ -1414,12 +1414,12 @@ func TestType_Code(t *testing.T) {
 					),
 				},
 			},
-			want: jen.Map(jen.Id("string")).Add(jen.Index().Add(jen.Map(jen.String()).Add(jen.Id("ast").Dot("File")))),
+			want: jen.Map(jen.Id("string")).Add(jen.Index().Add(jen.Map(jen.String()).Add(jen.Qual("go/ast", "File")))),
 		},
 		{
 			name: "Should return the correct jen representation of an struct type",
 			fields: fields{
-				StructType:NewStructType(),
+				StructType: NewStructType(),
 			},
 			want: jen.Add(jen.Struct()),
 		},
@@ -1434,7 +1434,7 @@ func TestType_Code(t *testing.T) {
 				Pointer:   tt.fields.Pointer,
 				ArrayType: tt.fields.ArrayType,
 				MapType:   tt.fields.MapType,
-				Struct:   tt.fields.StructType,
+				Struct:    tt.fields.StructType,
 				Qualifier: tt.fields.Qualifier,
 			}
 			if got := tp.Code(); !reflect.DeepEqual(got, tt.want) {
@@ -1446,13 +1446,13 @@ func TestType_Code(t *testing.T) {
 
 func TestType_String(t *testing.T) {
 	type fields struct {
-		Import    *Import
-		RawType   *jen.Statement
-		Function  *FunctionType
-		Pointer   bool
-		ArrayType *Type
+		Import     *Import
+		RawType    *jen.Statement
+		Function   *FunctionType
+		Pointer    bool
+		ArrayType  *Type
 		StructType *StructType
-		MapType *struct {
+		MapType    *struct {
 			Key   Type
 			Value Type
 		}
@@ -1640,14 +1640,14 @@ func TestType_String(t *testing.T) {
 		{
 			name: "Should return the correct string of an struct type",
 			fields: fields{
-				StructType:NewStructType(),
+				StructType: NewStructType(),
 			},
 			want: "struct{}",
 		},
 		{
 			name: "Should return the correct string of an struct type with fields",
 			fields: fields{
-				StructType:NewStructType(*NewStructField("A", NewType("string"))),
+				StructType: NewStructType(*NewStructField("A", NewType("string"))),
 			},
 			want: "struct {\n\tA string\n}",
 		},
@@ -1660,8 +1660,8 @@ func TestType_String(t *testing.T) {
 				Function:  tt.fields.Function,
 				Pointer:   tt.fields.Pointer,
 				ArrayType: tt.fields.ArrayType,
-				Struct: tt.fields.StructType,
-				MapType: tt.fields.MapType,
+				Struct:    tt.fields.StructType,
+				MapType:   tt.fields.MapType,
 				Variadic:  tt.fields.Variadic,
 				Qualifier: tt.fields.Qualifier,
 			}
@@ -4198,13 +4198,12 @@ func TestStructType_Code(t *testing.T) {
 	}{
 		{
 			name: "Should return the correct jen representation of a struct type",
-			s: StructType{},
+			s:    StructType{},
 			want: jen.Struct(),
 		},
 		{
 			name: "Should return the correct jen representation of a struct type with fields",
-			s: StructType{Fields: []StructField{*NewStructField("test", NewType("string"))},
-			},
+			s:    StructType{Fields: []StructField{*NewStructField("test", NewType("string"))}},
 			want: jen.Struct(NewStructField("test", NewType("string")).Code()),
 		},
 	}
@@ -4224,7 +4223,7 @@ func TestStructType_Docs(t *testing.T) {
 		want []Comment
 	}{
 		{
-			name:"Should do nothing",
+			name: "Should do nothing",
 		},
 	}
 	for _, tt := range tests {
@@ -4244,8 +4243,7 @@ func TestStructType_String(t *testing.T) {
 	}{
 		{
 			name: "Should return the correct jen representation of a struct type",
-			s: StructType{
-			},
+			s:    StructType{},
 			want: "struct{}",
 		},
 		{
@@ -4283,7 +4281,7 @@ func TestStructTypeOption(t *testing.T) {
 			},
 			want: Type{
 				Qualifier: "",
-				Struct: NewStructType(),
+				Struct:    NewStructType(),
 			},
 		},
 	}

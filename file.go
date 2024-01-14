@@ -54,8 +54,15 @@ func (f *File) String() string {
 	if f.jenFile == nil {
 		return "package " + f.pkg + "\n"
 	}
+	var ia []ImportAlias
 	for _, c := range f.Code {
 		f.jenFile.Add(c.Code())
+		if c.ImportAliases() != nil {
+			ia = append(ia, c.ImportAliases()...)
+		}
+	}
+	for _, i := range ia {
+		f.jenFile.ImportAlias(i.Path, i.Name)
 	}
 	return f.jenFile.GoString()
 }
