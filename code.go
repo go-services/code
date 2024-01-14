@@ -723,6 +723,9 @@ func (p *Parameter) AddDocs(_ ...Comment) {}
 // Code returns the jen representation of the function type.
 func (m *FunctionType) Code() *jen.Statement {
 	code := &jen.Statement{}
+	if m.Name != "" {
+		code.Type().Id(m.Name)
+	}
 	code.Func()
 	code.Params(paramsList(m.Params)...)
 	if m.Results != nil && len(m.Results) > 0 {
